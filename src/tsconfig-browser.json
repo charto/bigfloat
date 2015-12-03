@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+		"module": "system",
+		"noImplicitAny": true,
+		"outFile": "../dist/browser.js",
+		"target": "es5"
+	},
+	"files": [
+		"bigfloat.ts"
+	]
+}

@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"declaration": false,
+		"module": "commonjs",
+		"noImplicitAny": true,
+		"target": "es5"
+	},
+	"files": [
+		"../dist/bigfloat.d.ts",
+
+		"test.ts"
+	]
+}

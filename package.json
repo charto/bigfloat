@@ -1,0 +1,29 @@
+{
+  "name": "bigfloat",
+  "version": "0.0.1",
+  "description": "Fast arbitrary precision math library for computational geometry.",
+  "main": "dist/bigfloat.js",
+  "typings": "dist/bigfloat.d.ts",
+  "browser": "dist/browser.js",
+  "scripts": {
+    "prepublish": "cd src && tsc && tsc -p tsconfig-browser.json",
+    "test": "tsc -p test && node test/test.js"
+  },
+  "author": "Juha Järvi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/charto/bigfloat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/charto/bigfloat/issues"
+  },
+  "homepage": "https://github.com/charto/bigfloat#readme",
+  "keywords": [
+    "bignum",
+    "gmp"
+  ],
+  "devDependencies": {
+    "typescript": "^1.8.0-dev.20151128"
+  }
+}
