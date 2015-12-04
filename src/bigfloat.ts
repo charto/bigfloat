@@ -84,7 +84,7 @@ export class BigFloat {
 	constructor(dbl?: number) {
 		if(dbl) this.setDouble(dbl);
 		else {
-			this.exponent = 0;
+			this.fractionLen = 0;
 			this.limbList = [];
 		}
 	}
@@ -99,7 +99,7 @@ export class BigFloat {
 
 		let iPart = Math.floor(dbl);
 		let fPart = dbl - iPart;
-		let exponent = 0;
+		let fractionLen = 0;
 
 		let limbList: number[] = [];
 		let limb: number;
@@ -113,6 +113,7 @@ export class BigFloat {
 
 			// Append limb to value (limbs are reversed later).
 			limbList.push(limb);
+			++fractionLen;
 		}
 
 		limbList.reverse();
@@ -125,11 +126,10 @@ export class BigFloat {
 
 			// Append limb to value.
 			limbList.push(limb);
-			++exponent;
 		}
 
 		this.limbList = limbList;
-		this.exponent = exponent;
+		this.fractionLen = fractionLen;
 
 		return(this);
 	}
@@ -192,7 +192,7 @@ export class BigFloat {
 			this.mulInt(limbList[limbNum], out.limbList, 0, limbNum, 0xffffffff);
 		}
 
-		out.exponent = out.limbList.length - (this.limbList.length - this.exponent) - (factor.limbList.length - factor.exponent);
+		out.fractionLen = this.fractionLen + factor.fractionLen;
 
 		return(out);
 	}
@@ -218,7 +218,6 @@ export class BigFloat {
 		if(limbList[limbNum - 1] < divisor) {
 			carry = limbList[--limbNum];
 			limbList.length = limbNum;
-			--this.exponent;
 		}
 
 		while(limbNum--) {
@@ -241,8 +240,7 @@ export class BigFloat {
 	private fractionToString(base: number, groupSize: number, digitList: string[]) {
 		const pad = BigFloat.padTbl[base];
 		let limbList = this.limbList;
-		let exponent = this.exponent;
-		let limbCount = limbList.length - exponent;
+		let limbCount = this.fractionLen;
 		let limbNum = 0;
 		let limbStr: string;
 
@@ -280,18 +278,16 @@ export class BigFloat {
 		let digitList: string[] = [];
 
 		let limbList = this.limbList;
-		let exponent = this.exponent;
 		let limb: number;
 		let limbStr: string;
 
 		if(base == 10) {
 			const groupSize = 1000000000;
 			let iPart = BigFloat.tempFloat;
-			iPart.limbList = limbList.slice(-exponent || limbList.length);
-			iPart.exponent = exponent;
+			iPart.limbList = limbList.slice(this.fractionLen);
 
 			// Loop while 2 or more limbs remain, requiring arbitrary precision division to extract digits.
-			while(iPart.exponent) {
+			while(iPart.limbList.length) {
 				limbStr = '' + iPart.divInt(groupSize);
 
 				// Prepend digits into final result, padded with zeroes to 9 digits.
@@ -310,15 +306,15 @@ export class BigFloat {
 			this.fractionToString(base, groupSize, digitList);
 		} else {
 			let limbNum = limbList.length;
-			let fractionPos = limbNum - exponent - 1;
+			let fractionPos = this.fractionLen;
 
 			if(this.isNegative) digitList.push('-');
-			if(exponent == 0) digitList.push('0');
+			if(limbNum == fractionPos) digitList.push('0');
 
 			while(limbNum--) {
 				limbStr = limbList[limbNum].toString(base);
 
-				if(limbNum == fractionPos) digitList.push('.');
+				if(limbNum == fractionPos - 1) digitList.push('.');
 				digitList.push(pad.substr(limbStr.length) + limbStr);
 			}
 		}
@@ -341,7 +337,7 @@ export class BigFloat {
 	};
 
 	isNegative: number;
-	exponent: number;
+	fractionLen: number;
 
 	private static tempFloat: BigFloat = new BigFloat();
 

@@ -85,7 +85,6 @@ bc.stdout.on('data', (data: string) => {
 	if(libResult != bcResult) {
 		console.log(a.toString(10) + ' * ' + b.toString(10));
 		console.log(a.toString(16) + ' * ' + b.toString(16));
-		console.log(a.exponent + ' and ' + b.exponent);
 		console.log('BigFloat: ' + a.mul(b).toString(16));
 		console.log('BigFloat: ' + libResult);
 		// Remove trailing zeroes.
@@ -109,5 +108,7 @@ function testMul() {
 //	bc.stdin.write(a.toString(16).toUpperCase() + ' * ' + b.toString(16).toUpperCase() + '\n');
 	bc.stdin.write(a.toString(10).toUpperCase() + ' * ' + b.toString(10).toUpperCase() + '\n');
 }
+
+console.log('Fuzz-testing mul()...');
 
 testMul();
