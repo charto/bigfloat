@@ -7,8 +7,6 @@ const charView = new Uint8Array(buf);
 const shortView = new Uint16Array(buf);
 const doubleView = new Float64Array(buf);
 
-// var A = new BigFloat(0x27bc04b9253a9);
-
 function randDouble() {
 	for(let i = 0; i < 4; ++i) {
 		shortView[i] = ~~(Math.random() * 65536);

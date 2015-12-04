@@ -137,13 +137,13 @@ export class BigFloat {
 	/** Multiply by an integer and write output limbs to another list. */
 
 	private mulInt(factor: number, dstLimbList: number[], srcPos: number, dstPos: number, overwriteMask: number) {
+		if(!factor) return(0);
+
 		let limbList = this.limbList;
 		let limbCount = limbList.length;
 		var limb: number;
 		var lo: number;
 		let carry = 0;
-
-		if(!factor) return(0);
 
 		// limbList is an array of 32-bit ints but split here into 16-bit low
 		// and high words for multiplying by a 32-bit term, so the intermediate
@@ -183,15 +183,11 @@ export class BigFloat {
 		const limbCount = limbList.length;
 		let out = new BigFloat();
 
-		out.isNegative = this.isNegative ^ factor.isNegative;
-
-		let carry: number;
-		let carryPos = this.limbList.length;
-
 		for(let limbNum = 0; limbNum < limbCount; ++limbNum) {
 			this.mulInt(limbList[limbNum], out.limbList, 0, limbNum, 0xffffffff);
 		}
 
+		out.isNegative = this.isNegative ^ factor.isNegative;
 		out.fractionLen = this.fractionLen + factor.fractionLen;
 
 		return(out);
@@ -322,6 +318,8 @@ export class BigFloat {
 		// Remove leading and trailing zeroes.
 		return(BigFloat.trim(digitList.join('')));
 	}
+
+	/** Remove leading and trailing insignificant zero digits. */
 
 	static trim(str: string) {
 		return(str
