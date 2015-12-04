@@ -60,53 +60,73 @@ for(let i = 0; i < 100000; ++i) {
 	debug(randDouble());
 }
 
+interface TestSpec {
+	expr: string;
+	libResult: string;
+};
+
+type Test = () => TestSpec;
+
 const bc = childProcess.spawn('bc');
+
+let testSpec: TestSpec;
 let a = new BigFloat();
 let b = new BigFloat();
 
 let total = 0;
+let testNum = 0;
 let bcResult = '';
 
 bc.stdout.on('data', (data: string) => {
-	let libResult = a.mul(b).toString(10);
 	bcResult += data.toString();
 
 	// If BC output didn't end in a line break or had a continuation backslash
 	// before it, then more output is still coming.
 	if(!bcResult.match(/[^\\]\n$/)) return;
 
-	++total;
-	if(total % 1000 == 0) console.log(total);
-
 	bcResult = BigFloat.trim(bcResult.replace(/\\\n/g, '').trim().toLowerCase().replace(/^(-?)\./, '$10.'));
 
-	if(libResult != bcResult) {
-		console.log(a.toString(10) + ' * ' + b.toString(10));
-		console.log(a.toString(16) + ' * ' + b.toString(16));
-		console.log('BigFloat: ' + a.mul(b).toString(16));
-		console.log('BigFloat: ' + libResult);
-		// Remove trailing zeroes.
+	if(testSpec.libResult != bcResult) {
+		console.log(testSpec.expr);
+		console.log('BigFloat: ' + testSpec.libResult);
 		console.log('bc:       ' + bcResult);
 		console.log('');
 	}
 
-	bcResult = '';
-	if(total < 10000) testMul();
-	else bc.stdin.end();
+	test();
 })
 
-bc.stdin.write('scale=1000\n');
-//bc.stdin.write('obase=16\n');
-//bc.stdin.write('ibase=16\n');
+function test() {
+	++total;
+	if(total % 1000 == 0) console.log(total);
 
-function testMul() {
-	a.setDouble(randDouble());
-	b.setDouble(randDouble());
+	if(total >= 10000) {
+		++testNum;
+		total = 0;
+	}
 
-//	bc.stdin.write(a.toString(16).toUpperCase() + ' * ' + b.toString(16).toUpperCase() + '\n');
-	bc.stdin.write(a.toString(10).toUpperCase() + ' * ' + b.toString(10).toUpperCase() + '\n');
+	if(testList[testNum]) {
+		testSpec = testList[testNum]();
+
+		bcResult = '';
+		bc.stdin.write(testSpec.expr);
+	} else bc.stdin.end();
 }
 
-console.log('Fuzz-testing mul()...');
+let testList: Test[] = [
+	() => {
+		a.setDouble(randDouble());
+		b.setDouble(randDouble());
 
-testMul();
+		return({
+			expr: a.toString(10).toUpperCase() + ' * ' + b.toString(10).toUpperCase() + '\n',
+			libResult: a.mul(b).toString(10)
+		});
+	}
+]
+
+console.log('Fuzz-testing...');
+
+bc.stdin.write('scale=1000\n');
+
+test();
