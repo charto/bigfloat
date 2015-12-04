@@ -238,6 +238,41 @@ export class BigFloat {
 		return(carry);
 	}
 
+	private fractionToString(base: number, groupSize: number, digitList: string[]) {
+		const pad = BigFloat.padTbl[base];
+		let limbList = this.limbList;
+		let exponent = this.exponent;
+		let limbCount = limbList.length - exponent;
+		let limbNum = 0;
+		let limbStr: string;
+
+		// Skip least significant limbs that equal zero.
+		while(1) {
+			if(limbNum >= limbCount) return;
+			if(limbList[limbNum]) break;
+			++limbNum;
+		}
+
+		digitList.push('.');
+
+		let fPart = BigFloat.tempFloat;
+		fPart.limbList = limbList.slice(limbNum, limbCount);
+
+		limbCount -= limbNum;
+		limbNum = 0;
+
+		while(1) {
+			if(fPart.limbList[limbNum]) {
+				let carry = fPart.mulInt(groupSize, fPart.limbList, limbNum, limbNum, 0);
+				if(carry) fPart.limbList.pop();
+
+				limbStr = '' + carry;
+
+				digitList.push(pad.substr(limbStr.length) + limbStr);
+			} else if(++limbNum >= limbCount) break;
+		}
+	}
+
 	/** Convert to string in base 2, 10 or 16. */
 
 	toString(base: number = 10) {
@@ -245,7 +280,6 @@ export class BigFloat {
 		let digitList: string[] = [];
 
 		let limbList = this.limbList;
-		let limbNum = limbList.length;
 		let exponent = this.exponent;
 		let limb: number;
 		let limbStr: string;
@@ -271,30 +305,11 @@ export class BigFloat {
 
 			digitList.reverse();
 
-			let fPart = BigFloat.tempFloat;
-			fPart.limbList = limbList.slice(0, -exponent || limbList.length);
-			fPart.exponent = 0;
+			// Handle fractional part.
 
-			if(fPart.limbList.length) {
-				digitList.push('.');
-
-				let offset = 0;
-
-				while(1) {
-					// Skip least significant limbs that equal zero.
-					if(!fPart.limbList[offset]) {
-						if(++offset >= fPart.limbList.length) break;
-					} else {
-						let carry = fPart.mulInt(groupSize, fPart.limbList, offset, offset, 0);
-						if(carry) fPart.limbList.pop();
-
-						limbStr = '' + carry;
-
-						digitList.push(pad.substr(limbStr.length) + limbStr);
-					}
-				}
-			}
+			this.fractionToString(base, groupSize, digitList);
 		} else {
+			let limbNum = limbList.length;
 			let fractionPos = limbNum - exponent - 1;
 
 			if(this.isNegative) digitList.push('-');
@@ -309,10 +324,13 @@ export class BigFloat {
 		}
 
 		// Remove leading and trailing zeroes.
-		return(digitList
-			.join('')
+		return(BigFloat.trim(digitList.join('')));
+	}
+
+	static trim(str: string) {
+		return(str
 			.replace(/^(-?)0+([1-9a-z]|0(\.|$))/, '$1$2')
-			.replace(/(\.[0-9a-z]*[1-9a-z])0+$/, '$1')
+			.replace(/(\.|(\.[0-9a-z]*[1-9a-z]))0+$/, '$2')
 		);
 	}
 

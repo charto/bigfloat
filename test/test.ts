@@ -80,7 +80,7 @@ bc.stdout.on('data', (data: string) => {
 	++total;
 	if(total % 1000 == 0) console.log(total);
 
-	bcResult = bcResult.replace(/\\\n/g, '').trim().toLowerCase().replace(/^(-?)\./, '$10.').replace(/(\.|(\.[0-9a-z]*[1-9a-z]))0+$/, '$2')
+	bcResult = BigFloat.trim(bcResult.replace(/\\\n/g, '').trim().toLowerCase().replace(/^(-?)\./, '$10.'));
 
 	if(libResult != bcResult) {
 		console.log(a.toString(10) + ' * ' + b.toString(10));
