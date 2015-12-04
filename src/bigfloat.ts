@@ -172,7 +172,37 @@ export class BigFloat {
 			carry += (lo ^ (((limb - lo) ^ lo) & ~(limb ^ lo))) >>> 31;
 		}
 
+		// Extend result by one more limb if it overflows.
+		if(carry) dstLimbList[dstPos] = carry;
+
 		return(carry);
+	}
+
+	mulBig(factor: BigFloat) {
+		let limbList = factor.limbList;
+		const limbCount = limbList.length;
+		let out = new BigFloat();
+
+		out.isNegative = this.isNegative ^ factor.isNegative;
+
+		let carry: number;
+		let carryPos = this.limbList.length;
+
+		for(let limbNum = 0; limbNum < limbCount; ++limbNum) {
+			this.mulInt(limbList[limbNum], out.limbList, 0, limbNum, 0xffffffff);
+		}
+
+		out.exponent = out.limbList.length - (this.limbList.length - this.exponent) - (factor.limbList.length - factor.exponent);
+
+		return(out);
+	}
+
+	mul(factor: number | BigFloat) {
+		if(typeof(factor) == 'number') {
+			factor = BigFloat.tempFloat.setDouble(factor as number);
+		}
+
+		return(this.mulBig(factor as BigFloat));
 	}
 
 	/** Divide by integer, replacing current value by quotient. Return integer remainder. */
@@ -255,7 +285,10 @@ export class BigFloat {
 					if(!fPart.limbList[offset]) {
 						if(++offset >= fPart.limbList.length) break;
 					} else {
-						limbStr = '' + fPart.mulInt(groupSize, fPart.limbList, offset, offset, 0);
+						let carry = fPart.mulInt(groupSize, fPart.limbList, offset, offset, 0);
+						if(carry) fPart.limbList.pop();
+
+						limbStr = '' + carry;
 
 						digitList.push(pad.substr(limbStr.length) + limbStr);
 					}

@@ -1,4 +1,30 @@
 import {BigFloat} from '../dist/bigfloat';
+import * as childProcess from 'child_process';
+import * as fs from 'fs';
+
+const buf = new ArrayBuffer(8);
+const charView = new Uint8Array(buf);
+const shortView = new Uint16Array(buf);
+const doubleView = new Float64Array(buf);
+
+// var A = new BigFloat(0x27bc04b9253a9);
+
+function randDouble() {
+	for(let i = 0; i < 4; ++i) {
+		shortView[i] = ~~(Math.random() * 65536);
+	}
+
+	exp = (Math.random() * 64) - 2;
+
+	// Set exponent.
+	charView[7] = (charView[7] & 0x80) | ((exp + 1023) >> 4);
+	charView[6] = (charView[6] & 0x0f) | ((exp + 1023) << 4);
+
+	// Clear last 3 bits of mantissa.
+	charView[0] &= 0xf8;
+
+	return(doubleView[0]);
+}
 
 function debug(dbl: number) {
 	const big = new BigFloat(dbl);
@@ -27,30 +53,61 @@ function debug(dbl: number) {
 	}
 }
 
-
-const buf = new ArrayBuffer(8);
-const charView = new Uint8Array(buf);
-const shortView = new Uint16Array(buf);
-const doubleView = new Float64Array(buf);
-
 let count = 0;
 let exp = 0;
 
 console.log('Fuzz-testing conversion number -> BigFloat -> string...');
 
 for(let i = 0; i < 100000; ++i) {
-	for(let j = 0; j < 4; ++j) {
-		shortView[j] = ~~(Math.random() * 65536);
+	debug(randDouble());
+}
+
+const bc = childProcess.spawn('bc');
+let a = new BigFloat();
+let b = new BigFloat();
+
+let total = 0;
+let bcResult = '';
+
+bc.stdout.on('data', (data: string) => {
+	let libResult = a.mul(b).toString(10);
+	bcResult += data.toString();
+
+	// If BC output didn't end in a line break or had a continuation backslash
+	// before it, then more output is still coming.
+	if(!bcResult.match(/[^\\]\n$/)) return;
+
+	++total;
+	if(total % 1000 == 0) console.log(total);
+
+	bcResult = bcResult.replace(/\\\n/g, '').trim().toLowerCase().replace(/^(-?)\./, '$10.').replace(/(\.|(\.[0-9a-z]*[1-9a-z]))0+$/, '$2')
+
+	if(libResult != bcResult) {
+		console.log(a.toString(10) + ' * ' + b.toString(10));
+		console.log(a.toString(16) + ' * ' + b.toString(16));
+		console.log(a.exponent + ' and ' + b.exponent);
+		console.log('BigFloat: ' + a.mul(b).toString(16));
+		console.log('BigFloat: ' + libResult);
+		// Remove trailing zeroes.
+		console.log('bc:       ' + bcResult);
+		console.log('');
 	}
 
-	exp = (Math.random() * 64) - 2;
+	bcResult = '';
+	if(total < 10000) testMul();
+	else bc.stdin.end();
+})
 
-	// Set exponent.
-	charView[7] = (charView[7] & 0x80) | ((exp + 1023) >> 4);
-	charView[6] = (charView[6] & 0x0f) | ((exp + 1023) << 4);
+bc.stdin.write('scale=1000\n');
+//bc.stdin.write('obase=16\n');
+//bc.stdin.write('ibase=16\n');
 
-	// Clear last 3 bits of mantissa.
-	charView[0] &= 0xf8;
+function testMul() {
+	a.setDouble(randDouble());
+	b.setDouble(randDouble());
 
-	debug(doubleView[0]);
+//	bc.stdin.write(a.toString(16).toUpperCase() + ' * ' + b.toString(16).toUpperCase() + '\n');
+	bc.stdin.write(a.toString(10).toUpperCase() + ' * ' + b.toString(10).toUpperCase() + '\n');
 }
+
+testMul();
