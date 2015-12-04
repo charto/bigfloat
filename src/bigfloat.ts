@@ -94,8 +94,8 @@ export class BigFloat {
 	setDouble(dbl: number) {
 		if(dbl < 0) {
 			dbl = -dbl;
-			this.isNegative = true;
-		} else this.isNegative = false;
+			this.isNegative = 1;
+		} else this.isNegative = 0;
 
 		let iPart = Math.floor(dbl);
 		let fPart = dbl - iPart;
@@ -130,6 +130,8 @@ export class BigFloat {
 
 		this.limbList = limbList;
 		this.exponent = exponent;
+
+		return(this);
 	}
 
 	/** Multiply by an integer and write output limbs to another list. */
@@ -171,7 +173,7 @@ export class BigFloat {
 		}
 
 		return(carry);
-	};
+	}
 
 	/** Divide by integer, replacing current value by quotient. Return integer remainder. */
 
@@ -204,7 +206,7 @@ export class BigFloat {
 		}
 
 		return(carry);
-	};
+	}
 
 	/** Convert to string in base 2, 10 or 16. */
 
@@ -220,24 +222,8 @@ export class BigFloat {
 
 		if(base == 10) {
 			const groupSize = 1000000000;
-			let iPart = new BigFloat();
-			let fPart = new BigFloat();
-
-			fPart.limbList = limbList.slice(0, -exponent || limbList.length);
-			fPart.exponent = 0;
-
-			limbList = limbList.slice(-exponent || limbList.length);
-
-			// Find most significant limb with nonzero content.
-//			while(exponent--) {
-//				if(limbList[exponent]) break;
-//			}
-
-//			if(exponent < 0) ++exponent;
-
-//			limbList.length = exponent + 1;
-
-			iPart.limbList = limbList;
+			let iPart = BigFloat.tempFloat;
+			iPart.limbList = limbList.slice(-exponent || limbList.length);
 			iPart.exponent = exponent;
 
 			// Loop while 2 or more limbs remain, requiring arbitrary precision division to extract digits.
@@ -250,10 +236,14 @@ export class BigFloat {
 			}
 
 			// Prepend last remaining limb and sign to result.
-			digitList.push('' + (limbList[0] || 0));
+			digitList.push('' + (iPart.limbList[0] || 0));
 			if(this.isNegative) digitList.push('-');
 
 			digitList.reverse();
+
+			let fPart = BigFloat.tempFloat;
+			fPart.limbList = limbList.slice(0, -exponent || limbList.length);
+			fPart.exponent = 0;
 
 			if(fPart.limbList.length) {
 				digitList.push('.');
@@ -299,8 +289,10 @@ export class BigFloat {
 		16: zeroes(8)
 	};
 
-	isNegative: boolean;
+	isNegative: number;
 	exponent: number;
+
+	private static tempFloat: BigFloat = new BigFloat();
 
 	/** List of digits in base 2^32, least significant first. */
 	private limbList: number[];
