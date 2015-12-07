@@ -201,6 +201,235 @@ export class BigFloat {
 		return(this.mulBig(factor as BigFloat));
 	}
 
+	absDeltaFrom(other: BigFloat) {
+		let limbList = this.limbList;
+		let otherList = other.limbList;
+		let limbCount = limbList.length;
+		let otherCount = otherList.length;
+
+		// Compare lengths.
+		let d = (limbCount - this.fractionLen) - (otherCount - other.fractionLen);
+		// If lengths are equal, compare each limb from most to least significant.
+		while(!d && limbCount && otherCount) d = limbList[--limbCount] - otherList[--otherCount];
+
+		if(d) return(d);
+
+		if(limbCount) {
+			do d = limbList[--limbCount]; while(!d && limbCount);
+		} else if(otherCount) {
+			do d = -otherList[--otherCount]; while(!d && otherCount);
+		}
+
+		return(d);
+	}
+
+	isZero() {
+		let limbList = this.limbList;
+		let limbCount = limbList.length;
+		let d: number;
+
+		if(!limbCount) return(true);
+
+		do d = limbList[--limbCount]; while(!d && limbCount);
+
+		return(!d);
+	}
+
+	/** Return an arbitrary number with sign matching the result of this - other. */
+
+	deltaFrom(other: BigFloat) {
+		let isNegative = this.isNegative;
+		let d = other.isNegative - isNegative;
+
+		// Check if signs are different.
+		if(d) {
+			// Make sure positive and negative zero have no difference.
+			if(this.isZero() && other.isZero()) return(0);
+
+			// Return difference of signs.
+			return(d);
+		}
+
+		if(isNegative) {
+			return(-this.absDeltaFrom(other));
+		} else {
+			return(this.absDeltaFrom(other));
+		}
+	}
+
+	addBig(addend: BigFloat) {
+		let augend = this as BigFloat;
+		let sum = new BigFloat();
+
+		let fractionLen = augend.fractionLen;
+		let len = fractionLen - addend.fractionLen;
+
+		if(len < 0) {
+			len = -len;
+			fractionLen += len;
+			augend = addend;
+			addend = this;
+		}
+
+		sum.isNegative = this.isNegative;
+		sum.fractionLen = fractionLen;
+
+		let sumLimbs = sum.limbList;
+		let augendLimbs = augend.limbList;
+		let addendLimbs = addend.limbList;
+		let posAugend = 0;
+		let posAddend = 0;
+		let carry = 0;
+		let limbSum: number;
+
+		// If one input has more fractional limbs, just copy the leftovers to output.
+
+		while(posAugend < len) {
+			sumLimbs[posAugend] = augendLimbs[posAugend];
+			++posAugend;
+		}
+
+		let lenAddend = addendLimbs.length;
+
+		len = augendLimbs.length - posAugend;
+		if(len > lenAddend) len = lenAddend;
+
+		// Calculate sum where input numbers overlap.
+
+		while(posAddend < len) {
+			carry += augendLimbs[posAugend] + addendLimbs[posAddend++];
+			limbSum = carry >>> 0;
+			carry = carry - limbSum && 1;
+
+			sumLimbs[posAugend++] = limbSum;
+		}
+
+		let posSum = posAugend;
+
+		if(len < lenAddend) {
+			len = lenAddend;
+			augend = addend;
+			posAugend = posAddend;
+			augendLimbs = addendLimbs;
+		} else len = augendLimbs.length;
+
+		// Copy leftover most significant limbs to output, propagating carry.
+
+		while(posAugend < len) {
+			carry += augendLimbs[posAugend++];
+			limbSum = carry >>> 0;
+			carry = carry - limbSum && 1;
+
+			sumLimbs[posSum++] = limbSum;
+		}
+
+		if(carry) sumLimbs[posSum] = carry;
+
+		return(sum);
+	}
+
+	subBig(subtrahend: BigFloat) {
+		let minuend = this as BigFloat;
+		let difference = new BigFloat();
+
+		difference.isNegative = this.isNegative;
+
+		// Make sure the subtrahend is the smaller number.
+		if(minuend.absDeltaFrom(subtrahend) < 0) {
+			minuend = subtrahend;
+			subtrahend = this;
+			difference.isNegative ^= 1;
+		}
+
+		let fractionLen = minuend.fractionLen;
+		let len = fractionLen - subtrahend.fractionLen;
+
+		let differenceLimbs = difference.limbList;
+		let minuendLimbs = minuend.limbList;
+		let subtrahendLimbs = subtrahend.limbList;
+		let lenMinuend = minuendLimbs.length;
+		let lenSubtrahend = subtrahendLimbs.length;
+		let lenFinal = lenMinuend;
+		let posMinuend = 0;
+		let posSubtrahend = 0;
+		let posDifference = 0;
+		let carry = 0;
+		let limbDiff: number;
+
+		if(len >= 0) {
+			while(posMinuend < len) {
+				differenceLimbs[posMinuend] = minuendLimbs[posMinuend];
+				++posMinuend;
+			}
+
+			len += lenSubtrahend;
+			if(len > lenMinuend) len = lenMinuend;
+
+			posDifference = posMinuend;
+		} else {
+			len = -len;
+			fractionLen += len;
+			lenFinal += len;
+
+			while(posSubtrahend < len) {
+				carry -= subtrahendLimbs[posSubtrahend];
+				limbDiff = carry >>> 0;
+				carry = -(carry < 0);
+
+				differenceLimbs[posSubtrahend++] = limbDiff;
+			}
+
+			len += lenMinuend;
+			if(len > lenSubtrahend) len = lenSubtrahend;
+
+			posDifference = posSubtrahend;
+		}
+
+		difference.fractionLen = fractionLen;
+
+		// Calculate difference where input numbers overlap.
+
+		while(posDifference < len) {
+			carry += minuendLimbs[posMinuend++] - subtrahendLimbs[posSubtrahend++];
+			limbDiff = carry >>> 0;
+			carry = -(carry < 0);
+
+			differenceLimbs[posDifference++] = limbDiff;
+		}
+
+		// Copy leftover most significant limbs to output, propagating carry.
+
+		while(posDifference < lenFinal) {
+			carry += minuendLimbs[posMinuend++];
+			limbDiff = carry >>> 0;
+			carry = -(carry < 0);
+
+			differenceLimbs[posDifference++] = limbDiff;
+		}
+
+		return(difference);
+	}
+
+	private addSub(addend: number | BigFloat, flip: number) {
+		if(typeof(addend) == 'number') {
+			addend = BigFloat.tempFloat.setDouble(addend as number);
+		}
+
+		if(this.isNegative ^ (addend as BigFloat).isNegative ^ flip) {
+			return(this.subBig(addend as BigFloat));
+		} else {
+			return(this.addBig(addend as BigFloat));
+		}
+	}
+
+	add(addend: number | BigFloat) {
+		return(this.addSub(addend, 0));
+	}
+
+	sub(subtrahend: number | BigFloat) {
+		return(this.addSub(subtrahend, 1));
+	}
+
 	/** Divide by integer, replacing current value by quotient. Return integer remainder. */
 
 	private divInt(divisor: number) {

@@ -113,20 +113,43 @@ function test() {
 	} else bc.stdin.end();
 }
 
+function sign(x: number) {
+	return(x > 0 ? 1 : x < 0 ? -1 : 0);
+}
+
 let testList: Test[] = [
 	() => {
 		a.setDouble(randDouble());
 		b.setDouble(randDouble());
 
 		return({
-			expr: a.toString(10).toUpperCase() + ' * ' + b.toString(10).toUpperCase() + '\n',
+			expr: a.toString(10) + ' * ' + b.toString(10) + '\n',
 			libResult: a.mul(b).toString(10)
+		});
+	},
+	() => {
+		a.setDouble(randDouble());
+		b.setDouble(randDouble());
+
+		return({
+			expr: 'sign(' + a.toString(10) + ' - ' + b.toString(10) + ')\n',
+			libResult: '' + sign(a.deltaFrom(b))
+		});
+	},
+	() => {
+		a.setDouble(randDouble());
+		b.setDouble(randDouble());
+
+		return({
+			expr: a.toString(10) + ' + ' + b.toString(10) + '\n',
+			libResult: a.add(b).toString(10)
 		});
 	}
 ]
 
 console.log('Fuzz-testing...');
 
+bc.stdin.write('define sign(x) {if(x>0) {return(1);} else if(x<0) {return(-1);} else return(0);}');
 bc.stdin.write('scale=1000\n');
 
 test();
