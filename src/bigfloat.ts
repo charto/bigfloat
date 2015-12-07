@@ -134,6 +134,23 @@ export class BigFloat {
 		return(this);
 	}
 
+	private trimMost() {
+		let limbList = this.limbList;
+		let len = limbList.length;
+		let fractionLen = this.fractionLen;
+
+		while(len-- > fractionLen && !limbList[len]) limbList.pop();
+	}
+
+	private trimLeast() {
+		let limbList = this.limbList;
+		let len = this.fractionLen;
+
+		while(len-- && !limbList[0]) limbList.shift();
+
+		this.fractionLen = len + 1;
+	}
+
 	/** Multiply by an integer and write output limbs to another list. */
 
 	private mulInt(factor: number, dstLimbList: number[], srcPos: number, dstPos: number, overwriteMask: number) {
@@ -179,10 +196,17 @@ export class BigFloat {
 	}
 
 	private mulBig(multiplier: BigFloat) {
+		let product = new BigFloat();
+
+		if(this.isZero() || multiplier.isZero()) return(product);
+
 		let multiplierLimbs = multiplier.limbList;
 		const lenMultiplier = multiplierLimbs.length;
-		let product = new BigFloat();
 		let productLimbs = product.limbList;
+
+		for(let posProduct = this.limbList.length + lenMultiplier; posProduct--;) {
+			productLimbs[posProduct] = 0;
+		}
 
 		for(let posMultiplier = 0; posMultiplier < lenMultiplier; ++posMultiplier) {
 			this.mulInt(multiplierLimbs[posMultiplier], productLimbs, 0, posMultiplier, 0xffffffff);
@@ -190,6 +214,9 @@ export class BigFloat {
 
 		product.isNegative = this.isNegative ^ multiplier.isNegative;
 		product.fractionLen = this.fractionLen + multiplier.fractionLen;
+
+		product.trimMost();
+		product.trimLeast();
 
 		return(product);
 	}
@@ -211,6 +238,7 @@ export class BigFloat {
 		let otherCount = otherList.length;
 
 		// Compare lengths.
+		// Note: leading zeroes in integer part must be trimmed for this to work!
 		let d = (limbCount - this.fractionLen) - (otherCount - other.fractionLen);
 		// If lengths are equal, compare each limb from most to least significant.
 		while(!d && limbCount && otherCount) d = limbList[--limbCount] - otherList[--otherCount];
@@ -227,15 +255,7 @@ export class BigFloat {
 	}
 
 	isZero() {
-		let limbList = this.limbList;
-		let limbCount = limbList.length;
-		let d: number;
-
-		if(!limbCount) return(true);
-
-		do d = limbList[--limbCount]; while(!d && limbCount);
-
-		return(!d);
+		return(this.limbList.length == 0);
 	}
 
 	/** Return an arbitrary number with sign matching the result of this - other. */
@@ -328,6 +348,8 @@ export class BigFloat {
 
 		if(carry) sumLimbs[posSum] = carry;
 
+		sum.trimLeast();
+
 		return(sum);
 	}
 
@@ -409,6 +431,9 @@ export class BigFloat {
 
 			differenceLimbs[posDifference++] = limbDiff;
 		}
+
+		difference.trimMost();
+		difference.trimLeast();
 
 		return(difference);
 	}
