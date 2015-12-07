@@ -6,18 +6,45 @@ bigfloat
 `bigfloat` is a fast arbitrary precision math library optimized for computational geometry and geoinformatics.
 It provides base 2 floating point:
 
-- addition
-- subtraction
-- multiplication
-- comparison
-- conversion from JavaScript number type
-- conversion to string in base 2, 10 or 16
+- conversion from JavaScript number type `x = new BigFloat(123.456)`
+- addition `x.add(y)`
+- subtraction `x.sub(y)`
+- multiplication `x.mul(y)`
+- comparison `x.deltaFrom(y)`
+- conversion to string in base 2, 10 or 16 `x.toString(10)`
 
-without ever losing any significant bits.
+without ever losing any significant bits. Numbers are immutable, so all operations return a new BigFloat.
 
-Internally numbers are represented in 32-bit limbs somewhat like in the [GMP](https://gmplib.org/manual/Float-Internals.html) library.
+Internally numbers are represented in 32-bit limbs (digits in base 2^32) somewhat like in the [GMP](https://gmplib.org/manual/Float-Internals.html) library. The least significant limb is stored first, because basic algorithms for arithmetic operations progress from the least to most significant digit while propagating carry. If carry causes the output to grow, adding a new limb at the end of the array is faster than adding it in the beginning.
 
-`bigfloat` is optimized for exponents relatively close to zero.
+`bigfloat` is optimized for exponents relatively close to zero, so the location of the decimal point is always present in the limb array, even if that introduces otherwise insignificant leading or trailing zero digits.
+
+Getting started
+---
+
+```bash
+git clone https://github.com/charto/bigfloat.git node_modules/bigfloat
+cd node_modules/bigfloat && npm install
+cd ../..
+node
+```
+
+OR
+
+```bash
+npm install bigfloat
+node
+```
+
+THEN
+
+```js
+x = Math.pow(2, 53);
+console.log(x + 1 - x); // Prints 0
+
+BigFloat = require('bigfloat').BigFloat;
+console.log(new BigFloat(x).add(1).sub(x).toString()); // Prints 1
+```
 
 License
 ===
