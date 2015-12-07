@@ -144,6 +144,15 @@ let testList: Test[] = [
 			expr: a.toString(10) + ' + ' + b.toString(10) + '\n',
 			libResult: a.add(b).toString(10)
 		});
+	},
+	() => {
+		a.setDouble(randDouble());
+		b.setDouble(randDouble());
+
+		return({
+			expr: a.toString(10) + ' - ' + b.toString(10) + '\n',
+			libResult: a.sub(b).toString(10)
+		});
 	}
 ]
 

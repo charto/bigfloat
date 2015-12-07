@@ -178,27 +178,30 @@ export class BigFloat {
 		return(carry);
 	}
 
-	mulBig(factor: BigFloat) {
-		let limbList = factor.limbList;
-		const limbCount = limbList.length;
-		let out = new BigFloat();
+	private mulBig(multiplier: BigFloat) {
+		let multiplierLimbs = multiplier.limbList;
+		const lenMultiplier = multiplierLimbs.length;
+		let product = new BigFloat();
+		let productLimbs = product.limbList;
 
-		for(let limbNum = 0; limbNum < limbCount; ++limbNum) {
-			this.mulInt(limbList[limbNum], out.limbList, 0, limbNum, 0xffffffff);
+		for(let posMultiplier = 0; posMultiplier < lenMultiplier; ++posMultiplier) {
+			this.mulInt(multiplierLimbs[posMultiplier], productLimbs, 0, posMultiplier, 0xffffffff);
 		}
 
-		out.isNegative = this.isNegative ^ factor.isNegative;
-		out.fractionLen = this.fractionLen + factor.fractionLen;
+		product.isNegative = this.isNegative ^ multiplier.isNegative;
+		product.fractionLen = this.fractionLen + multiplier.fractionLen;
 
-		return(out);
+		return(product);
 	}
 
-	mul(factor: number | BigFloat) {
-		if(typeof(factor) == 'number') {
-			factor = BigFloat.tempFloat.setDouble(factor as number);
+	/** Multiply and return product in a new BigFloat. */
+
+	mul(multiplier: number | BigFloat) {
+		if(typeof(multiplier) == 'number') {
+			multiplier = BigFloat.tempFloat.setDouble(multiplier as number);
 		}
 
-		return(this.mulBig(factor as BigFloat));
+		return(this.mulBig(multiplier as BigFloat));
 	}
 
 	absDeltaFrom(other: BigFloat) {
@@ -257,7 +260,7 @@ export class BigFloat {
 		}
 	}
 
-	addBig(addend: BigFloat) {
+	private addBig(addend: BigFloat) {
 		let augend = this as BigFloat;
 		let sum = new BigFloat();
 
@@ -328,7 +331,7 @@ export class BigFloat {
 		return(sum);
 	}
 
-	subBig(subtrahend: BigFloat) {
+	private subBig(subtrahend: BigFloat) {
 		let minuend = this as BigFloat;
 		let difference = new BigFloat();
 
@@ -422,9 +425,13 @@ export class BigFloat {
 		}
 	}
 
+	/** Add and return sum in a new BigFloat. */
+
 	add(addend: number | BigFloat) {
 		return(this.addSub(addend, 0));
 	}
+
+	/** Subtract and return difference in a new BigFloat. */
 
 	sub(subtrahend: number | BigFloat) {
 		return(this.addSub(subtrahend, 1));
