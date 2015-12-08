@@ -462,6 +462,17 @@ export class BigFloat {
 		return(this.addSub(subtrahend, 1));
 	}
 
+	/** Round towards zero, to given number of base 2^32 fractional digits. */
+
+	truncate(fractionLimbCount: number) {
+		if(this.fractionLen > fractionLimbCount) {
+			this.limbList = this.limbList.slice(this.fractionLen - fractionLimbCount);
+			this.fractionLen = fractionLimbCount;
+		}
+
+		return(this);
+	}
+
 	/** Divide by integer, replacing current value by quotient. Return integer remainder. */
 
 	private divInt(divisor: number) {
