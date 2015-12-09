@@ -1,5 +1,5 @@
 bigfloat
-========
+===
 
 [![npm version](https://img.shields.io/npm/v/bigfloat.svg)](https://www.npmjs.com/package/bigfloat)
 
@@ -14,6 +14,20 @@ It provides base 2 floating point:
 - conversion to string in base 2, 10 or 16 `x.toString(10)`
 
 without ever losing any significant bits. Numbers are immutable, so all operations return a new BigFloat.
+
+It's quite fast, see the [Mandelbrot benchmark](http://charto.github.io/bigfloat/). Here's some example results:
+
+Native JavaScript IEEE 754:  
+████████████████████████████████ // ██ 80000 frames per minute
+
+`bigfloat`:  
+████████████████████████████ 141 frames per minute
+
+[bignumber.js](https://github.com/MikeMcl/bignumber.js):  
+██████████ 48 frames per minute
+
+[big.js](https://github.com/MikeMcl/big.js):  
+███████ 35 frames per minute
 
 Internally numbers are represented in 32-bit limbs (digits in base 2^32) somewhat like in the [GMP](https://gmplib.org/manual/Float-Internals.html) library. The least significant limb is stored first, because basic algorithms for arithmetic operations progress from the least to most significant digit while propagating carry. If carry causes the output to grow, adding a new limb at the end of the array is faster than adding it in the beginning.
 

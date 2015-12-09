@@ -4,6 +4,9 @@ export const dblEpsilon = Math.pow(2, -52);
 /** Base for calculations, the bigger the better but must fit in 32 bits. */
 const limbSize = Math.pow(2, 32);
 
+/** Number of decimal digits per limb, for compatibility in rounding. */
+const limbDigits = Math.log(limbSize) / Math.LN10;
+
 /** Create a string with the given number of zero digits. */
 
 function zeroes(count: number) {
@@ -231,15 +234,19 @@ export class BigFloat {
 		return(this.mulBig(multiplier as BigFloat));
 	}
 
-	absDeltaFrom(other: BigFloat) {
+	absDeltaFrom(other: number | BigFloat) {
+		if(typeof(other) == 'number') {
+			other = BigFloat.tempFloat.setDouble(other as number);
+		}
+
 		let limbList = this.limbList;
-		let otherList = other.limbList;
+		let otherList = (other as BigFloat).limbList;
 		let limbCount = limbList.length;
 		let otherCount = otherList.length;
 
 		// Compare lengths.
 		// Note: leading zeroes in integer part must be trimmed for this to work!
-		let d = (limbCount - this.fractionLen) - (otherCount - other.fractionLen);
+		let d = (limbCount - this.fractionLen) - (otherCount - (other as BigFloat).fractionLen);
 		// If lengths are equal, compare each limb from most to least significant.
 		while(!d && limbCount && otherCount) d = limbList[--limbCount] - otherList[--otherCount];
 
@@ -253,6 +260,8 @@ export class BigFloat {
 
 		return(d);
 	}
+
+	cmp: (other: number | BigFloat) => number;
 
 	isZero() {
 		return(this.limbList.length == 0);
@@ -473,6 +482,10 @@ export class BigFloat {
 		return(this);
 	}
 
+	round(decimalCount: number) {
+		return(this.truncate(Math.ceil(decimalCount / limbDigits)));
+	}
+
 	/** Divide by integer, replacing current value by quotient. Return integer remainder. */
 
 	private divInt(divisor: number) {
@@ -614,3 +627,5 @@ export class BigFloat {
 	/** List of digits in base 2^32, least significant first. */
 	private limbList: number[];
 }
+
+BigFloat.prototype.cmp = BigFloat.prototype.deltaFrom;
