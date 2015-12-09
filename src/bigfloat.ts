@@ -82,10 +82,12 @@ export class BigFloat {
 	}
 
 	constructor(dbl?: number) {
-		if(dbl) this.setDouble(dbl);
-		else {
+		if(dbl) {
+			this.setDouble(dbl);
+		} else {
 			this.fractionLen = 0;
-			this.limbList = [];
+			this.limbList = null;
+			this.len = 0;
 		}
 	}
 
@@ -103,6 +105,7 @@ export class BigFloat {
 
 		let limbList: number[] = [];
 		let limb: number;
+		let len = 0;
 
 		// Handle fractional part.
 		while(fPart) {
@@ -112,7 +115,7 @@ export class BigFloat {
 			fPart -= limb;
 
 			// Append limb to value (limbs are reversed later).
-			limbList.push(limb);
+			limbList[len++] = limb;
 			++fractionLen;
 		}
 
@@ -125,39 +128,52 @@ export class BigFloat {
 			iPart = (iPart - limb) / limbSize;
 
 			// Append limb to value.
-			limbList.push(limb);
+			limbList[len++] = limb;
 		}
 
-		this.limbList = limbList;
+		this.limbList = new Uint32Array(limbList);
 		this.fractionLen = fractionLen;
+		this.len = len;
 
 		return(this);
 	}
 
+	private reserve(len: number) {
+		this.limbList = new Uint32Array(len);
+		this.len = len;
+	}
+
 	private trimMost() {
 		let limbList = this.limbList;
-		let len = limbList.length;
+		let len = this.len;
 		let fractionLen = this.fractionLen;
 
-		while(len-- > fractionLen && !limbList[len]) limbList.pop();
+		while(len-- > fractionLen && !limbList[len]);
+
+		this.len = len + 1;
 	}
 
 	private trimLeast() {
 		let limbList = this.limbList;
 		let len = this.fractionLen;
+		let pos = 0;
 
-		while(len-- && !limbList[0]) limbList.shift();
+		for(; pos < len && !limbList[pos]; ++pos);
 
-		this.fractionLen = len + 1;
+		if(pos) {
+			this.limbList = limbList.slice(pos, this.len);
+			this.len -= pos;
+			this.fractionLen -= pos;
+		}
 	}
 
 	/** Multiply by an integer and write output limbs to another list. */
 
-	private mulInt(factor: number, dstLimbList: number[], srcPos: number, dstPos: number, overwriteMask: number) {
+	private mulInt(factor: number, dstLimbList: number[] | Uint32Array, srcPos: number, dstPos: number, overwriteMask: number) {
 		if(!factor) return(0);
 
 		let limbList = this.limbList;
-		let limbCount = limbList.length;
+		let limbCount = this.len;
 		var limb: number;
 		var lo: number;
 		let carry = 0;
@@ -201,12 +217,11 @@ export class BigFloat {
 		if(this.isZero() || multiplier.isZero()) return(product);
 
 		let multiplierLimbs = multiplier.limbList;
-		const lenMultiplier = multiplierLimbs.length;
-		let productLimbs = product.limbList;
+		const lenMultiplier = multiplier.len;
 
-		for(let posProduct = this.limbList.length + lenMultiplier; posProduct--;) {
-			productLimbs[posProduct] = 0;
-		}
+		product.reserve(this.len + lenMultiplier);
+
+		let productLimbs = product.limbList;
 
 		for(let posMultiplier = 0; posMultiplier < lenMultiplier; ++posMultiplier) {
 			this.mulInt(multiplierLimbs[posMultiplier], productLimbs, 0, posMultiplier, 0xffffffff);
@@ -234,8 +249,8 @@ export class BigFloat {
 	absDeltaFrom(other: BigFloat) {
 		let limbList = this.limbList;
 		let otherList = other.limbList;
-		let limbCount = limbList.length;
-		let otherCount = otherList.length;
+		let limbCount = this.len;
+		let otherCount = other.len;
 
 		// Compare lengths.
 		// Note: leading zeroes in integer part must be trimmed for this to work!
@@ -255,7 +270,7 @@ export class BigFloat {
 	}
 
 	isZero() {
-		return(this.limbList.length == 0);
+		return(!this.len);
 	}
 
 	/** Return an arbitrary number with sign matching the result of this - other. */
@@ -296,6 +311,10 @@ export class BigFloat {
 
 		sum.isNegative = this.isNegative;
 		sum.fractionLen = fractionLen;
+let len1 = augend.len - augend.fractionLen;
+let len2 = addend.len - addend.fractionLen;
+if(len1 < len2) len1 = len2;
+sum.limbList = new Uint32Array(fractionLen + len1 + 1);
 
 		let sumLimbs = sum.limbList;
 		let augendLimbs = augend.limbList;
@@ -312,9 +331,9 @@ export class BigFloat {
 			++posAugend;
 		}
 
-		let lenAddend = addendLimbs.length;
+		let lenAddend = addend.len;
 
-		len = augendLimbs.length - posAugend;
+		len = augend.len - posAugend;
 		if(len > lenAddend) len = lenAddend;
 
 		// Calculate sum where input numbers overlap.
@@ -334,7 +353,7 @@ export class BigFloat {
 			augend = addend;
 			posAugend = posAddend;
 			augendLimbs = addendLimbs;
-		} else len = augendLimbs.length;
+		} else len = augend.len;
 
 		// Copy leftover most significant limbs to output, propagating carry.
 
@@ -346,8 +365,11 @@ export class BigFloat {
 			sumLimbs[posSum++] = limbSum;
 		}
 
-		if(carry) sumLimbs[posSum] = carry;
+		if(carry) sumLimbs[posSum++] = carry;
 
+sum.len = posSum;
+
+//		sum.trimMost();
 		sum.trimLeast();
 
 		return(sum);
@@ -372,8 +394,8 @@ export class BigFloat {
 		let differenceLimbs = difference.limbList;
 		let minuendLimbs = minuend.limbList;
 		let subtrahendLimbs = subtrahend.limbList;
-		let lenMinuend = minuendLimbs.length;
-		let lenSubtrahend = subtrahendLimbs.length;
+		let lenMinuend = minuend.len;
+		let lenSubtrahend = subtrahend.len;
 		let lenFinal = lenMinuend;
 		let posMinuend = 0;
 		let posSubtrahend = 0;
@@ -382,6 +404,8 @@ export class BigFloat {
 		let limbDiff: number;
 
 		if(len >= 0) {
+			differenceLimbs = new Uint32Array(lenFinal);
+
 			while(posMinuend < len) {
 				differenceLimbs[posMinuend] = minuendLimbs[posMinuend];
 				++posMinuend;
@@ -395,6 +419,8 @@ export class BigFloat {
 			len = -len;
 			fractionLen += len;
 			lenFinal += len;
+
+			differenceLimbs = new Uint32Array(lenFinal);
 
 			while(posSubtrahend < len) {
 				carry -= subtrahendLimbs[posSubtrahend];
@@ -432,6 +458,9 @@ export class BigFloat {
 			differenceLimbs[posDifference++] = limbDiff;
 		}
 
+		difference.limbList = differenceLimbs;
+		difference.len = lenFinal;
+
 		difference.trimMost();
 		difference.trimLeast();
 
@@ -466,6 +495,7 @@ export class BigFloat {
 
 	truncate(fractionLimbCount: number) {
 		if(this.fractionLen > fractionLimbCount) {
+			this.len -= this.fractionLen - fractionLimbCount;
 			this.limbList = this.limbList.slice(this.fractionLen - fractionLimbCount);
 			this.fractionLen = fractionLimbCount;
 		}
@@ -477,7 +507,7 @@ export class BigFloat {
 
 	private divInt(divisor: number) {
 		let limbList = this.limbList;
-		let limbNum = limbList.length;
+		let limbNum = this.len;
 		let limb: number;
 		let hi: number, lo: number;
 		let carry = 0;
@@ -485,7 +515,7 @@ export class BigFloat {
 		// If most significant limb is zero after dividing, decrement number of limbs remaining.
 		if(limbList[limbNum - 1] < divisor) {
 			carry = limbList[--limbNum];
-			limbList.length = limbNum;
+			this.len = limbNum;
 		}
 
 		while(limbNum--) {
@@ -523,6 +553,7 @@ export class BigFloat {
 
 		let fPart = BigFloat.tempFloat;
 		fPart.limbList = limbList.slice(limbNum, limbCount);
+		fPart.len = limbCount - limbNum;
 
 		limbCount -= limbNum;
 		limbNum = 0;
@@ -530,7 +561,7 @@ export class BigFloat {
 		while(1) {
 			if(fPart.limbList[limbNum]) {
 				let carry = fPart.mulInt(groupSize, fPart.limbList, limbNum, limbNum, 0);
-				if(carry) fPart.limbList.pop();
+//				if(carry) fPart.limbList.pop();
 
 				limbStr = '' + carry;
 
@@ -542,6 +573,8 @@ export class BigFloat {
 	/** Convert to string in base 2, 10 or 16. */
 
 	toString(base: number = 10) {
+		if(this.isZero()) return('0');
+
 		const pad = BigFloat.padTbl[base];
 		let digitList: string[] = [];
 
@@ -553,9 +586,10 @@ export class BigFloat {
 			const groupSize = 1000000000;
 			let iPart = BigFloat.tempFloat;
 			iPart.limbList = limbList.slice(this.fractionLen);
+			iPart.len = this.len - this.fractionLen;
 
 			// Loop while 2 or more limbs remain, requiring arbitrary precision division to extract digits.
-			while(iPart.limbList.length) {
+			while(iPart.len) {
 				limbStr = '' + iPart.divInt(groupSize);
 
 				// Prepend digits into final result, padded with zeroes to 9 digits.
@@ -564,7 +598,7 @@ export class BigFloat {
 			}
 
 			// Prepend last remaining limb and sign to result.
-			digitList.push('' + (iPart.limbList[0] || 0));
+			digitList.push('' + (iPart.len ? iPart.limbList[0] : 0));
 			if(this.isNegative) digitList.push('-');
 
 			digitList.reverse();
@@ -573,7 +607,7 @@ export class BigFloat {
 
 			this.fractionToString(base, groupSize, digitList);
 		} else {
-			let limbNum = limbList.length;
+			let limbNum = this.len;
 			let fractionPos = this.fractionLen;
 
 			if(this.isNegative) digitList.push('-');
@@ -612,5 +646,6 @@ export class BigFloat {
 	private static tempFloat: BigFloat = new BigFloat();
 
 	/** List of digits in base 2^32, least significant first. */
-	private limbList: number[];
+	private limbList: number[] | Uint32Array;
+	private len: number;
 }
