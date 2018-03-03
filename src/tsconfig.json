@@ -1,12 +1,19 @@
 {
+	"compileOnSave": true,
 	"compilerOptions": {
 		"declaration": true,
 		"module": "commonjs",
+		"moduleResolution": "node",
 		"noImplicitAny": true,
+		"noImplicitThis": true,
 		"outDir": "../dist",
-		"target": "es5"
+		"removeComments": false,
+		"sourceMap": false,
+		"strictNullChecks": true,
+		"target": "es5",
+		"types": []
 	},
 	"files": [
-		"bigfloat.ts"
+		"index.ts"
 	]
 }

@@ -1,12 +1,11 @@
 {
   "name": "bigfloat",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Fast arbitrary precision math library for computational geometry.",
-  "main": "dist/bigfloat.js",
-  "typings": "dist/bigfloat.d.ts",
-  "browser": "dist/browser.js",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "scripts": {
-    "prepublish": "tsc -p src && tsc -p src/tsconfig-browser.json",
+    "prepublish": "tsc -p src && tsc -p src/ts-amd.json && node src/fix-amd.js bigfloat",
     "test": "tsc -p test && node test/test.js"
   },
   "author": "Juha Järvi",
@@ -24,6 +23,7 @@
     "gmp"
   ],
   "devDependencies": {
-    "typescript": "^1.8.0-dev.20151204"
+    "@types/node": "^9.4.6",
+    "typescript": "^2.7.2"
   }
 }

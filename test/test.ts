@@ -1,4 +1,4 @@
-import {BigFloat} from '../dist/bigfloat';
+import { BigFloat } from '..';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 

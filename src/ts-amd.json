@@ -2,16 +2,18 @@
 	"compileOnSave": true,
 	"compilerOptions": {
 		"declaration": false,
-		"module": "commonjs",
+		"module": "amd",
 		"moduleResolution": "node",
 		"noImplicitAny": true,
 		"noImplicitThis": true,
+		"outFile": "../dist/index-amd.js",
 		"removeComments": false,
 		"sourceMap": false,
 		"strictNullChecks": true,
-		"target": "es5"
+		"target": "es5",
+		"types": []
 	},
 	"files": [
-		"test.ts"
+		"../bigfloat.ts"
 	]
 }
