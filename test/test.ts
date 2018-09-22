@@ -1,4 +1,4 @@
-import { BigFloat } from '..';
+import { BigFloat32 } from '..';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 
@@ -25,11 +25,11 @@ function randDouble() {
 }
 
 function debug(dbl: number) {
-	const big = new BigFloat(dbl);
+	const big = new BigFloat32(dbl);
 
-	const b10a = BigFloat.doubleToString(dbl);
+	const b10a = BigFloat32.doubleToString(dbl);
 	const b10b = big.toString();
-	const b16a = BigFloat.doubleToString(dbl, 16);
+	const b16a = BigFloat32.doubleToString(dbl, 16);
 	const b16b = big.toString(16);
 
 	if(b10a != b10b || b16a != b16b) {
@@ -70,8 +70,8 @@ type Test = () => TestSpec;
 const bc = childProcess.spawn('bc');
 
 let testSpec: TestSpec;
-let a = new BigFloat();
-let b = new BigFloat();
+let a = new BigFloat32();
+let b = new BigFloat32();
 
 let total = 0;
 let testNum = 0;
@@ -84,7 +84,7 @@ bc.stdout.on('data', (data: string) => {
 	// before it, then more output is still coming.
 	if(!bcResult.match(/[^\\]\n$/)) return;
 
-	bcResult = BigFloat.trim(bcResult.replace(/\\\n/g, '').trim().toLowerCase().replace(/^(-?)\./, '$10.'));
+	bcResult = BigFloat32.trim(bcResult.replace(/\\\n/g, '').trim().toLowerCase().replace(/^(-?)\./, '$10.'));
 
 	if(testSpec.libResult != bcResult) {
 		console.log(testSpec.expr);
