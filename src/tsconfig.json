@@ -2,11 +2,12 @@
 	"compileOnSave": true,
 	"compilerOptions": {
 		"declaration": true,
+		"lib": [ "es5" ],
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"noImplicitAny": true,
 		"noImplicitThis": true,
-		"outDir": "../dist",
+		"outDir": "../dist/cjs",
 		"removeComments": false,
 		"sourceMap": false,
 		"strictNullChecks": true,
