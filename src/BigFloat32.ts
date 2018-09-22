@@ -10,10 +10,16 @@ export class BigFloat32 {
 		if(dbl) {
 			this.setDouble(dbl);
 		} else {
-			this.sign = 1;
 			this.fractionLen = 0;
-			this.limbList = [];
 		}
+	}
+
+	setZero() {
+		this.sign = 1;
+		this.fractionLen = 0;
+		this.limbList.length = 0;
+
+		return(this);
 	}
 
 	/** Set value from a floating point number (probably IEEE 754 double). */
@@ -30,8 +36,10 @@ export class BigFloat32 {
 		let fPart = dbl - iPart;
 		let fractionLen = 0;
 
-		const limbList: number[] = [];
+		const limbList = this.limbList;
 		let limb: number;
+
+		limbList.length = 0;
 
 		// Handle fractional part.
 		while(fPart) {
@@ -128,16 +136,17 @@ export class BigFloat32 {
 		return(carry);
 	}
 
-	private mulBig(multiplier: BigFloat32) {
-		const product = new BigFloat32();
-
-		if(this.isZero() || multiplier.isZero()) return(product);
+	private mulBig(multiplier: BigFloat32, product: BigFloat32) {
+		if(this.isZero() || multiplier.isZero()) return(product.setZero());
 
 		const multiplierLimbs = multiplier.limbList;
 		const lenMultiplier = multiplierLimbs.length;
 		const productLimbs = product.limbList;
 
-		for(let posProduct = this.limbList.length + lenMultiplier; posProduct--;) {
+		let posProduct = this.limbList.length + lenMultiplier;
+		productLimbs.length = posProduct;
+
+		while(posProduct--) {
 			productLimbs[posProduct] = 0;
 		}
 
@@ -156,12 +165,16 @@ export class BigFloat32 {
 
 	/** Multiply and return product in a new BigFloat32. */
 
-	mul(multiplier: number | BigFloat32) {
+	mul(multiplier: number | BigFloat32, product?: BigFloat32) {
+		product = product || new BigFloat32();
+
 		if(typeof(multiplier) == 'number') {
 			multiplier = tempFloat.setDouble(multiplier);
 		}
 
-		return(this.mulBig(multiplier));
+		if(product == this) throw(new Error('Cannot multiply in place'));
+
+		return(this.mulBig(multiplier, product));
 	}
 
 	absDeltaFrom(other: number | BigFloat32) {
@@ -215,9 +228,8 @@ export class BigFloat32 {
 		);
 	}
 
-	private addBig(addend: BigFloat32) {
+	private addBig(addend: BigFloat32, sum: BigFloat32) {
 		let augend: BigFloat32 = this;
-		let sum = new BigFloat32();
 
 		let fractionLen = augend.fractionLen;
 		let len = fractionLen - addend.fractionLen;
@@ -281,6 +293,8 @@ export class BigFloat32 {
 			sumLimbs[posSum++] = limbSum;
 		}
 
+		sumLimbs.length = posSum;
+
 		if(carry) sumLimbs[posSum] = carry;
 
 		sum.trimLeast();
@@ -288,9 +302,8 @@ export class BigFloat32 {
 		return(sum);
 	}
 
-	private subBig(subtrahend: BigFloat32) {
+	private subBig(subtrahend: BigFloat32, difference: BigFloat32) {
 		let minuend: BigFloat32 = this;
-		let difference = new BigFloat32();
 
 		difference.sign = this.sign;
 
@@ -317,6 +330,8 @@ export class BigFloat32 {
 		let limbDiff: number;
 
 		if(len >= 0) {
+			differenceLimbs.length = lenFinal;
+
 			while(posMinuend < len) {
 				differenceLimbs[posMinuend] = minuendLimbs[posMinuend];
 				++posMinuend;
@@ -330,6 +345,8 @@ export class BigFloat32 {
 			len = -len;
 			fractionLen += len;
 			lenFinal += len;
+
+			differenceLimbs.length = lenFinal;
 
 			while(posSubtrahend < len) {
 				carry -= subtrahendLimbs[posSubtrahend];
@@ -373,28 +390,32 @@ export class BigFloat32 {
 		return(difference);
 	}
 
-	private addSub(addend: number | BigFloat32, sign: -1 | 1) {
+	private addSub(addend: number | BigFloat32, sign: -1 | 1, result?: BigFloat32) {
+		result = result || new BigFloat32();
+
+		if(result == this) throw(new Error('Cannot add or subtract in place'));
+
 		if(typeof(addend) == 'number') {
 			addend = tempFloat.setDouble(addend);
 		}
 
 		if(this.sign * addend.sign * sign < 0) {
-			return(this.subBig(addend));
+			return(this.subBig(addend, result));
 		} else {
-			return(this.addBig(addend));
+			return(this.addBig(addend, result));
 		}
 	}
 
 	/** Add and return sum in a new BigFloat32. */
 
-	add(addend: number | BigFloat32) {
-		return(this.addSub(addend, 1));
+	add(addend: number | BigFloat32, sum?: BigFloat32) {
+		return(this.addSub(addend, 1, sum));
 	}
 
 	/** Subtract and return difference in a new BigFloat32. */
 
-	sub(subtrahend: number | BigFloat32) {
-		return(this.addSub(subtrahend, -1));
+	sub(subtrahend: number | BigFloat32, difference?: BigFloat32) {
+		return(this.addSub(subtrahend, -1, difference));
 	}
 
 	/** Round towards zero, to given number of base 2^32 fractional digits. */
@@ -529,10 +550,10 @@ export class BigFloat32 {
 		return(trimNumber(digitList.join('')));
 	}
 
-	sign: -1 | 1;
+	sign: -1 | 1 = 1;
 
 	/** List of digits in base 2^32, least significant first. */
-	private limbList: number[];
+	private limbList: number[] = [];
 	/** Number of limbs belonging to fractional part. */
 	private fractionLen: number;
 }

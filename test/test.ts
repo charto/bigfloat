@@ -72,6 +72,7 @@ const bc = childProcess.spawn('bc');
 let testSpec: TestSpec;
 let a = new BigFloat32();
 let b = new BigFloat32();
+let t = new BigFloat32();
 
 let total = 0;
 let testNum = 0;
@@ -124,7 +125,7 @@ let testList: Test[] = [
 
 		return({
 			expr: a.toString(10) + ' * ' + b.toString(10) + '\n',
-			libResult: a.mul(b).toString(10)
+			libResult: a.mul(b, t).toString(10)
 		});
 	},
 	() => {
@@ -142,7 +143,7 @@ let testList: Test[] = [
 
 		return({
 			expr: a.toString(10) + ' + ' + b.toString(10) + '\n',
-			libResult: a.add(b).toString(10)
+			libResult: a.add(b, t).toString(10)
 		});
 	},
 	() => {
@@ -151,7 +152,7 @@ let testList: Test[] = [
 
 		return({
 			expr: a.toString(10) + ' - ' + b.toString(10) + '\n',
-			libResult: a.sub(b).toString(10)
+			libResult: a.sub(b, t).toString(10)
 		});
 	}
 ]
