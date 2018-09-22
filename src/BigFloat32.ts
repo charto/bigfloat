@@ -2,79 +2,15 @@
 // Released under the MIT license, see LICENSE.
 
 import { BaseInfo32, limbSize32 } from './BaseInfo32';
+import { trimNumber } from './util';
 
 export class BigFloat32 {
-
-	/** Output EXACT value of an IEEE 754 double in any base supported by Number.toString.
-	  * Exponent must be between -2 and 61, and last 3 bits of mantissa must be 0.
-	  * Useful for debugging. */
-
-	static doubleToString(dbl: number, base = 10) {
-		let { pad, limbBase } = BaseInfo32.init(base);
-		let sign = '';
-		let out = '';
-		let limb: number;
-		let limbStr: string;
-
-		if(isNaN(dbl)) return('NaN');
-
-		// For negative numbers, output sign and get absolute value.
-		if(dbl < 0) {
-			sign = '-';
-			dbl = -dbl;
-		}
-
-		if(!isFinite(dbl)) return(sign + 'Inf');
-
-		if(dbl < 1) {
-			out += '0';
-		} else {
-			let iPart = Math.floor(dbl);
-			dbl -= iPart;
-
-			while(iPart) {
-				// Extract groups of digits starting from the least significant.
-				limb = iPart % limbBase;
-				iPart = (iPart - limb) / limbBase;
-				limbStr = limb.toString(base);
-
-				// Prepend digits to result.
-				out = limbStr + out;
-
-				// If more limbs remain, pad with zeroes to group length.
-				if(iPart) out = pad.substr(limbStr.length) + out;
-			}
-		}
-
-		// Is there a fractional part remaining?
-		if(dbl > 0) {
-			out += '.';
-
-			if(limbBase != limbSize32) {
-				limbBase = base;
-				pad = '';
-			}
-
-			while(dbl) {
-				// Extract groups of digits starting from the most significant.
-				dbl *= limbBase;
-				limb = dbl >>> 0;
-				dbl -= limb;
-				limbStr = limb.toString(base);
-
-				// Append digits to result and pad with zeroes to group length.
-				out += pad.substr(limbStr.length) + limbStr;
-			}
-		}
-
-		// Remove trailing zeroes.
-		return(sign + out.replace(/(\.[0-9a-z]*[1-9a-z])0+$/, '$1'));
-	}
 
 	constructor(dbl?: number) {
 		if(dbl) {
 			this.setDouble(dbl);
 		} else {
+			this.sign = 1;
 			this.fractionLen = 0;
 			this.limbList = [];
 		}
@@ -85,14 +21,16 @@ export class BigFloat32 {
 	setDouble(dbl: number) {
 		if(dbl < 0) {
 			dbl = -dbl;
-			this.isNegative = 1;
-		} else this.isNegative = 0;
+			this.sign = -1;
+		} else {
+			this.sign = 1;
+		}
 
 		let iPart = Math.floor(dbl);
 		let fPart = dbl - iPart;
 		let fractionLen = 0;
 
-		let limbList: number[] = [];
+		const limbList: number[] = [];
 		let limb: number;
 
 		// Handle fractional part.
@@ -125,16 +63,20 @@ export class BigFloat32 {
 		return(this);
 	}
 
+	/** Trim zero limbs from most significant end. */
+
 	private trimMost() {
-		let limbList = this.limbList;
+		const limbList = this.limbList;
+		const fractionLen = this.fractionLen;
 		let len = limbList.length;
-		let fractionLen = this.fractionLen;
 
 		while(len-- > fractionLen && !limbList[len]) limbList.pop();
 	}
 
+	/** Trim zero limbs from least significant end. */
+
 	private trimLeast() {
-		let limbList = this.limbList;
+		const limbList = this.limbList;
 		let len = this.fractionLen;
 
 		while(len-- && !limbList[0]) limbList.shift();
@@ -147,10 +89,10 @@ export class BigFloat32 {
 	private mulInt(factor: number, dstLimbList: number[], srcPos: number, dstPos: number, overwriteMask: number) {
 		if(!factor) return(0);
 
-		let limbList = this.limbList;
-		let limbCount = limbList.length;
-		var limb: number;
-		var lo: number;
+		const limbList = this.limbList;
+		const limbCount = limbList.length;
+		let limb: number;
+		let lo: number;
 		let carry = 0;
 
 		// limbList is an array of 32-bit ints but split here into 16-bit low
@@ -187,13 +129,13 @@ export class BigFloat32 {
 	}
 
 	private mulBig(multiplier: BigFloat32) {
-		let product = new BigFloat32();
+		const product = new BigFloat32();
 
 		if(this.isZero() || multiplier.isZero()) return(product);
 
-		let multiplierLimbs = multiplier.limbList;
+		const multiplierLimbs = multiplier.limbList;
 		const lenMultiplier = multiplierLimbs.length;
-		let productLimbs = product.limbList;
+		const productLimbs = product.limbList;
 
 		for(let posProduct = this.limbList.length + lenMultiplier; posProduct--;) {
 			productLimbs[posProduct] = 0;
@@ -203,7 +145,7 @@ export class BigFloat32 {
 			this.mulInt(multiplierLimbs[posMultiplier], productLimbs, 0, posMultiplier, 0xffffffff);
 		}
 
-		product.isNegative = this.isNegative ^ multiplier.isNegative;
+		product.sign = this.sign * multiplier.sign as (-1 | 1);
 		product.fractionLen = this.fractionLen + multiplier.fractionLen;
 
 		product.trimMost();
@@ -216,25 +158,25 @@ export class BigFloat32 {
 
 	mul(multiplier: number | BigFloat32) {
 		if(typeof(multiplier) == 'number') {
-			multiplier = tempFloat.setDouble(multiplier as number);
+			multiplier = tempFloat.setDouble(multiplier);
 		}
 
-		return(this.mulBig(multiplier as BigFloat32));
+		return(this.mulBig(multiplier));
 	}
 
 	absDeltaFrom(other: number | BigFloat32) {
 		if(typeof(other) == 'number') {
-			other = tempFloat.setDouble(other as number);
+			other = tempFloat.setDouble(other);
 		}
 
-		let limbList = this.limbList;
-		let otherList = (other as BigFloat32).limbList;
+		const limbList = this.limbList;
+		const otherList = other.limbList;
 		let limbCount = limbList.length;
 		let otherCount = otherList.length;
 
 		// Compare lengths.
 		// Note: leading zeroes in integer part must be trimmed for this to work!
-		let d = (limbCount - this.fractionLen) - (otherCount - (other as BigFloat32).fractionLen);
+		let d = (limbCount - this.fractionLen) - (otherCount - other.fractionLen);
 		// If lengths are equal, compare each limb from most to least significant.
 		while(!d && limbCount && otherCount) d = limbList[--limbCount] - otherList[--otherCount];
 
@@ -257,28 +199,24 @@ export class BigFloat32 {
 
 	/** Return an arbitrary number with sign matching the result of this - other. */
 
-	deltaFrom(other: BigFloat32) {
-		let isNegative = this.isNegative;
-		let d = other.isNegative - isNegative;
-
-		// Check if signs are different.
-		if(d) {
-			// Make sure positive and negative zero have no difference.
-			if(this.isZero() && other.isZero()) return(0);
-
-			// Return difference of signs.
-			return(d);
+	deltaFrom(other: number | BigFloat32) {
+		if(typeof(other) == 'number') {
+			other = tempFloat.setDouble(other);
 		}
 
-		if(isNegative) {
-			return(-this.absDeltaFrom(other));
-		} else {
-			return(this.absDeltaFrom(other));
-		}
+		return(
+			// Make positive and negative zero equal.
+			this.limbList.length + other.limbList.length && (
+				// Compare signs.
+				this.sign - other.sign ||
+				// Finally compare full values.
+				this.absDeltaFrom(other) * this.sign
+			)
+		);
 	}
 
 	private addBig(addend: BigFloat32) {
-		let augend = this as BigFloat32;
+		let augend: BigFloat32 = this;
 		let sum = new BigFloat32();
 
 		let fractionLen = augend.fractionLen;
@@ -291,7 +229,7 @@ export class BigFloat32 {
 			addend = this;
 		}
 
-		sum.isNegative = this.isNegative;
+		sum.sign = this.sign;
 		sum.fractionLen = fractionLen;
 
 		let sumLimbs = sum.limbList;
@@ -351,16 +289,16 @@ export class BigFloat32 {
 	}
 
 	private subBig(subtrahend: BigFloat32) {
-		let minuend = this as BigFloat32;
+		let minuend: BigFloat32 = this;
 		let difference = new BigFloat32();
 
-		difference.isNegative = this.isNegative;
+		difference.sign = this.sign;
 
 		// Make sure the subtrahend is the smaller number.
 		if(minuend.absDeltaFrom(subtrahend) < 0) {
 			minuend = subtrahend;
 			subtrahend = this;
-			difference.isNegative ^= 1;
+			difference.sign = -this.sign as (-1 | 1);
 		}
 
 		let fractionLen = minuend.fractionLen;
@@ -435,28 +373,28 @@ export class BigFloat32 {
 		return(difference);
 	}
 
-	private addSub(addend: number | BigFloat32, flip: number) {
+	private addSub(addend: number | BigFloat32, sign: -1 | 1) {
 		if(typeof(addend) == 'number') {
-			addend = tempFloat.setDouble(addend as number);
+			addend = tempFloat.setDouble(addend);
 		}
 
-		if(this.isNegative ^ (addend as BigFloat32).isNegative ^ flip) {
-			return(this.subBig(addend as BigFloat32));
+		if(this.sign * addend.sign * sign < 0) {
+			return(this.subBig(addend));
 		} else {
-			return(this.addBig(addend as BigFloat32));
+			return(this.addBig(addend));
 		}
 	}
 
 	/** Add and return sum in a new BigFloat32. */
 
 	add(addend: number | BigFloat32) {
-		return(this.addSub(addend, 0));
+		return(this.addSub(addend, 1));
 	}
 
 	/** Subtract and return difference in a new BigFloat32. */
 
 	sub(subtrahend: number | BigFloat32) {
-		return(this.addSub(subtrahend, 1));
+		return(this.addSub(subtrahend, -1));
 	}
 
 	/** Round towards zero, to given number of base 2^32 fractional digits. */
@@ -565,7 +503,7 @@ export class BigFloat32 {
 
 			// Prepend last remaining limb and sign to result.
 			digitList.push('' + (iPart.limbList[0] || 0));
-			if(this.isNegative) digitList.push('-');
+			if(this.sign < 0) digitList.push('-');
 
 			digitList.reverse();
 
@@ -574,9 +512,9 @@ export class BigFloat32 {
 			this.fractionToString(base, digitList);
 		} else {
 			let limbNum = limbList.length;
-			let fractionPos = this.fractionLen;
+			const fractionPos = this.fractionLen;
 
-			if(this.isNegative) digitList.push('-');
+			if(this.sign < 0) digitList.push('-');
 			if(limbNum == fractionPos) digitList.push('0');
 
 			while(limbNum--) {
@@ -588,23 +526,15 @@ export class BigFloat32 {
 		}
 
 		// Remove leading and trailing zeroes.
-		return(BigFloat32.trim(digitList.join('')));
+		return(trimNumber(digitList.join('')));
 	}
 
-	/** Remove leading and trailing insignificant zero digits. */
-
-	static trim(str: string) {
-		return(str
-			.replace(/^(-?)0+([1-9a-z]|0(\.|$))/, '$1$2')
-			.replace(/(\.|(\.[0-9a-z]*[1-9a-z]))0+$/, '$2')
-		);
-	}
-
-	isNegative: number;
-	fractionLen: number;
+	sign: -1 | 1;
 
 	/** List of digits in base 2^32, least significant first. */
 	private limbList: number[];
+	/** Number of limbs belonging to fractional part. */
+	private fractionLen: number;
 }
 
 BigFloat32.prototype.cmp = BigFloat32.prototype.deltaFrom;
