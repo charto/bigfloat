@@ -3,6 +3,7 @@
 
 /** Base for calculations, the bigger the better but must fit in 32 bits. */
 export const limbSize32 = Math.pow(2, 32);
+export const limbsPerDigit32 = Math.log(10) / (32 * Math.log(2));
 
 /** Create a string with the given number of zero digits. */
 

@@ -1,7 +1,7 @@
 // This file is part of bigfloat, copyright (c) 2015- BusFaster Ltd.
 // Released under the MIT license, see LICENSE.
 
-import { BaseInfo32, limbSize32 } from './BaseInfo32';
+import { BaseInfo32, limbSize32, limbsPerDigit32 } from './BaseInfo32';
 import { trimNumber } from './util';
 
 export class BigFloat32 {
@@ -169,7 +169,7 @@ export class BigFloat32 {
 		product = product || new BigFloat32();
 
 		if(typeof(multiplier) == 'number') {
-			multiplier = tempFloat.setDouble(multiplier);
+			multiplier = temp32.setDouble(multiplier);
 		}
 
 		if(product == this) throw(new Error('Cannot multiply in place'));
@@ -179,7 +179,7 @@ export class BigFloat32 {
 
 	absDeltaFrom(other: number | BigFloat32) {
 		if(typeof(other) == 'number') {
-			other = tempFloat.setDouble(other);
+			other = temp32.setDouble(other);
 		}
 
 		const limbList = this.limbList;
@@ -214,7 +214,7 @@ export class BigFloat32 {
 
 	deltaFrom(other: number | BigFloat32) {
 		if(typeof(other) == 'number') {
-			other = tempFloat.setDouble(other);
+			other = temp32.setDouble(other);
 		}
 
 		return(
@@ -396,7 +396,7 @@ export class BigFloat32 {
 		if(result == this) throw(new Error('Cannot add or subtract in place'));
 
 		if(typeof(addend) == 'number') {
-			addend = tempFloat.setDouble(addend);
+			addend = temp32.setDouble(addend);
 		}
 
 		if(this.sign * addend.sign * sign < 0) {
@@ -430,7 +430,7 @@ export class BigFloat32 {
 	}
 
 	round(decimalCount: number) {
-		return(this.truncate(Math.ceil(decimalCount / 9)));
+		return(this.truncate(1 + ~~(decimalCount * limbsPerDigit32)));
 	}
 
 	/** Divide by integer, replacing current value by quotient. Return integer remainder. */
@@ -481,7 +481,7 @@ export class BigFloat32 {
 
 		digitList.push('.');
 
-		let fPart = tempFloat;
+		let fPart = temp32;
 		fPart.limbList = limbList.slice(limbNum, limbCount);
 
 		limbCount -= limbNum;
@@ -499,7 +499,8 @@ export class BigFloat32 {
 		}
 	}
 
-	/** Convert to string in any base supported by Number.toString. */
+	/** Convert to string in any base supported by Number.toString.
+	  * @return String in lower case. */
 
 	toString(base: number = 10) {
 		const { pad, limbBase } = BaseInfo32.init(base);
@@ -510,7 +511,7 @@ export class BigFloat32 {
 		let limbStr: string;
 
 		if(limbBase != limbSize32) {
-			let iPart = tempFloat;
+			let iPart = temp32;
 			iPart.limbList = limbList.slice(this.fractionLen);
 
 			// Loop while 2 or more limbs remain, requiring arbitrary precision division to extract digits.
@@ -560,4 +561,4 @@ export class BigFloat32 {
 
 BigFloat32.prototype.cmp = BigFloat32.prototype.deltaFrom;
 
-const tempFloat = new BigFloat32();
+const temp32 = new BigFloat32();
