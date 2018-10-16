@@ -9,14 +9,14 @@
   "scripts": {
     "tsc": "tsc",
     "rollup": "rollup",
-    "prepublish": "tsc -m es6 --outdir dist/esm -p src && rollup -c",
+    "prepublish": "(node src/checkver.js ge 5.0.0 && tsc -m es6 --outdir dist/esm -p src && rollup -c) || tsc -p src",
     "test": "tsc -p test && node test/test.js"
   },
   "author": "Juha Järvi",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/charto/bigfloat.git"
+    "url": "https://github.com/charto/bigfloat.git"
   },
   "bugs": {
     "url": "https://github.com/charto/bigfloat/issues"
@@ -27,8 +27,8 @@
     "gmp"
   ],
   "devDependencies": {
-    "@types/node": "^10.9.4",
-    "rollup": "^0.66.0",
-    "typescript": "^3.0.3"
+    "@types/node": "^10.12.0",
+    "rollup": "^0.66.6",
+    "typescript": "^3.1.3"
   }
 }
