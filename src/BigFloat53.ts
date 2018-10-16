@@ -80,7 +80,7 @@ export class BigFloat53 {
 	  * @return This object, for chaining. */
 
 	setZero() {
-		this.limbList.length = 0;
+		this.len = 0;
 		return(this);
 	}
 
@@ -91,8 +91,8 @@ export class BigFloat53 {
 	  * @return This object, for chaining. */
 
 	setValue(value: number) {
-		this.limbList.length = 1;
 		this.limbList[0] = value;
+		this.len = value && 1;
 		return(this);
 	}
 
@@ -103,7 +103,7 @@ export class BigFloat53 {
 	  * @return This object, for chaining. */
 
 	setSum(a: number, b: number) {
-		this.limbList.length = 2;
+		this.len = 2;
 		twoSum(a, b, this.limbList);
 		return(this);
 	}
@@ -114,7 +114,7 @@ export class BigFloat53 {
 	  * @return This object, for chaining. */
 
 	setProduct(a: number, b: number) {
-		this.limbList.length = 2;
+		this.len = 2;
 		this.limbList[0] = twoProduct(a, b);
 		this.limbList[1] = tempProduct;
 		return(this);
@@ -125,7 +125,7 @@ export class BigFloat53 {
 	// TODO: Test.
 	normalize() {
 		const limbList = this.limbList;
-		let len = limbList.length;
+		let len = this.len;
 		let limb: number;
 
 		if(len) {
@@ -162,7 +162,7 @@ export class BigFloat53 {
 			}
 
 			limbList[a] = q;
-			limbList.length = a + 1;
+			this.len = a + (q && 1);
 		}
 
 		return(this);
@@ -178,7 +178,7 @@ export class BigFloat53 {
 	mulSmall(b: number, product: BigFloat53) {
 		const limbList = this.limbList;
 		const productLimbs = product.limbList;
-		const count = limbList.length;
+		const count = this.len;
 		let t1: number, t2: number, t3: number;
 		let srcPos = 0, dstPos = 0;
 
@@ -188,8 +188,6 @@ export class BigFloat53 {
 			productLimbs[dstPos] = limb;
 			dstPos += limb && 1;
 		}
-
-		productLimbs.length = 1;
 
 		writeLimb(twoProduct(limbList[srcPos++], b));
 		let q = tempProduct;
@@ -205,6 +203,7 @@ export class BigFloat53 {
 		}
 
 		productLimbs[dstPos] = q;
+		product.len = dstPos + (q && 1);
 
 		return(product);
 	}
@@ -218,7 +217,7 @@ export class BigFloat53 {
 
 	private mulBig(multiplier: BigFloat53, product: BigFloat53) {
 		const limbList = multiplier.limbList;
-		let pos = limbList.length;
+		let pos = multiplier.len;
 
 		if(!pos) return(product.setZero());
 
@@ -260,8 +259,9 @@ export class BigFloat53 {
 
 	isZero() {
 		const limbList = this.limbList;
+		let pos = this.len;
 
-		for(let pos = limbList.length; pos--;) {
+		while(pos--) {
 			if(limbList[pos]) return(false);
 		}
 
@@ -272,19 +272,24 @@ export class BigFloat53 {
 
 	// TODO: Test.
 	deltaFrom(other: number | BigFloat53) {
-		let t = this.limbList.length;
+		let t = this.len;
 		let sign = t && (t = this.limbList[t - 1]) && (t > 0 ? 1 : -1);
+		let diff = sign;
 
 		if(typeof(other) != 'number') {
-			t = other.limbList.length;
-			sign -= t && (t = other.limbList[t - 1]) && (t > 0 ? 1 : -1);
-		} else sign -= other && (other > 0 ? 1 : -1);
+			t = other.len;
+			diff -= t && (t = other.limbList[t - 1]) && (t > 0 ? 1 : -1);
+			if(diff || !sign) return(diff);
 
-		if(sign) return(sign);
+			this.addBig(other, -1, temp53[0]);
+		} else {
+			diff -= other && (other > 0 ? 1 : -1);
+			if(diff || !sign) return(diff);
 
-		this.addSub(other, -1, temp53[0]);
+			this.addSmall(-other, temp53[0]);
+		}
 
-		t = temp53[0].limbList.length;
+		t = temp53[0].len;
 		return(t && temp53[0].limbList[t - 1]);
 	}
 
@@ -298,12 +303,10 @@ export class BigFloat53 {
 	addSmall(b: number, sum: BigFloat53) {
 		const limbList = this.limbList;
 		const sumLimbs = sum.limbList;
-		const count = limbList.length;
+		const count = this.len;
 		let estimate: number;
 		let a: number, a2: number, b2: number, err: number;
 		let srcPos = 0, dstPos = 0;
-
-		sumLimbs.length = 1;
 
 		while(srcPos < count) {
 			a = limbList[srcPos++];
@@ -319,6 +322,7 @@ export class BigFloat53 {
 		}
 
 		sumLimbs[dstPos] = b;
+		sum.len = dstPos + (b && 1);
 
 		return(sum);
 	}
@@ -334,7 +338,7 @@ export class BigFloat53 {
 		const augendLimbs = this.limbList;
 		const addendLimbs = addend.limbList;
 		const sumLimbs = sum.limbList;
-		let count = augendLimbs.length + addendLimbs.length;
+		let count = this.len + addend.len;
 		let nextAugendPos = 0;
 		let nextAddendPos = 0;
 		let nextSumPos = 0;
@@ -350,11 +354,10 @@ export class BigFloat53 {
 		let err: number;
 
 		if(!count) return(sum.setZero());
-		sum.limbList.length = 1;
 
 		// Append sentinel limbs to avoid testing for end of array.
-		augendLimbs.push(Infinity);
-		addendLimbs.push(Infinity);
+		augendLimbs[this.len] = Infinity;
+		addendLimbs[addend.len] = Infinity;
 
 		/** Get next smallest limb from either augend or addend.
 		  * This avoids merging the two limb lists. */
@@ -378,8 +381,8 @@ export class BigFloat53 {
 		let limb = getNextLimb();
 
 		while(--count) {
-			prevLimb = limb;
 			nextLimb = getNextLimb();
+			prevLimb = limb;
 
 			limb += nextLimb;
 			nextLimb2 = limb - prevLimb;
@@ -390,10 +393,7 @@ export class BigFloat53 {
 		}
 
 		sumLimbs[nextSumPos] = limb;
-
-		// Remove sentinel limbs.
-		augendLimbs.pop();
-		addendLimbs.pop();
+		sum.len = nextSumPos + (limb && 1);
 
 		return(sum);
 	}
@@ -436,7 +436,7 @@ export class BigFloat53 {
 		this.normalize();
 
 		const limbList = this.limbList;
-		let len = limbList.length;
+		let len = this.len;
 
 		// Use binary search to find last |limb| < 1.
 
@@ -466,15 +466,12 @@ export class BigFloat53 {
 		mid -= fractionLimbCount - 1;
 
 		if(mid > 0) {
-			len -= mid;
-			let pos = 0;
+			this.len -= mid;
+			len = this.len;
 
-			while(pos < len) {
+			for(let pos = 0; pos < len; ++pos) {
 				limbList[pos] = limbList[pos + mid];
-				++pos;
 			}
-
-			limbList.length = len;
 		}
 
 		return(this);
@@ -486,9 +483,15 @@ export class BigFloat53 {
 
 	// TODO: Test.
 	valueOf() {
-		this.normalize();
+		const limbList = this.limbList;
+		const len = this.len;
+		let result = 0;
 
-		return(this.limbList[this.limbList.length - 1]);
+		for(let pos = 0; pos < len; ++pos) {
+			result += limbList[pos];
+		}
+
+		return(result);
 	}
 
 	/** Convert to string in any base supported by Number.toString.
@@ -496,16 +499,21 @@ export class BigFloat53 {
 
 	toString(base?: number) {
 		const limbList = this.limbList;
-		let pos = limbList.length;
+		let pos = this.len;
 
 		temp32[pos & 1].setZero();
-		while(pos--) temp32[~pos & 1].add(limbList[pos], temp32[pos & 1]);
+
+		while(pos--) {
+			temp32[~pos & 1].add(limbList[pos], temp32[pos & 1]);
+		}
 
 		return(temp32[~pos & 1].toString(base));
 	}
 
 	/** List of components ordered by increasing exponent. */
 	private limbList: number[] = [];
+	private len: number;
+
 }
 
 BigFloat53.prototype.cmp = BigFloat53.prototype.deltaFrom;
