@@ -6,12 +6,8 @@ import { trimNumber } from './util';
 
 export class BigFloat32 {
 
-	constructor(dbl?: number) {
-		if(dbl) {
-			this.setDouble(dbl);
-		} else {
-			this.fractionLen = 0;
-		}
+	constructor(value?: number) {
+		value ? this.setValue(value) : this.setZero();
 	}
 
 	setZero() {
@@ -24,16 +20,16 @@ export class BigFloat32 {
 
 	/** Set value from a floating point number (probably IEEE 754 double). */
 
-	setDouble(dbl: number) {
-		if(dbl < 0) {
-			dbl = -dbl;
+	setValue(value: number) {
+		if(value < 0) {
+			value = -value;
 			this.sign = -1;
 		} else {
 			this.sign = 1;
 		}
 
-		let iPart = Math.floor(dbl);
-		let fPart = dbl - iPart;
+		let iPart = Math.floor(value);
+		let fPart = value - iPart;
 		let fractionLen = 0;
 
 		const limbList = this.limbList;
@@ -169,7 +165,7 @@ export class BigFloat32 {
 		product = product || new BigFloat32();
 
 		if(typeof(multiplier) == 'number') {
-			multiplier = temp32.setDouble(multiplier);
+			multiplier = temp32.setValue(multiplier);
 		}
 
 		if(product == this) throw(new Error('Cannot multiply in place'));
@@ -179,7 +175,7 @@ export class BigFloat32 {
 
 	absDeltaFrom(other: number | BigFloat32) {
 		if(typeof(other) == 'number') {
-			other = temp32.setDouble(other);
+			other = temp32.setValue(other);
 		}
 
 		const limbList = this.limbList;
@@ -214,7 +210,7 @@ export class BigFloat32 {
 
 	deltaFrom(other: number | BigFloat32) {
 		if(typeof(other) == 'number') {
-			other = temp32.setDouble(other);
+			other = temp32.setValue(other);
 		}
 
 		return(
@@ -396,7 +392,7 @@ export class BigFloat32 {
 		if(result == this) throw(new Error('Cannot add or subtract in place'));
 
 		if(typeof(addend) == 'number') {
-			addend = temp32.setDouble(addend);
+			addend = temp32.setValue(addend);
 		}
 
 		if(this.sign * addend.sign * sign < 0) {
@@ -551,7 +547,7 @@ export class BigFloat32 {
 		return(trimNumber(digitList.join('')));
 	}
 
-	sign: -1 | 1 = 1;
+	sign: -1 | 1;
 
 	/** List of digits in base 2^32, least significant first. */
 	private limbList: number[] = [];

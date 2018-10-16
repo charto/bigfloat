@@ -120,8 +120,8 @@ function sign(x: number) {
 
 let testList: Test[] = [
 	() => {
-		a.setDouble(randDouble());
-		b.setDouble(randDouble());
+		a.setValue(randDouble());
+		b.setValue(randDouble());
 
 		return({
 			expr: a.toString(10) + ' * ' + b.toString(10) + '\n',
@@ -129,8 +129,8 @@ let testList: Test[] = [
 		});
 	},
 	() => {
-		a.setDouble(randDouble());
-		b.setDouble(randDouble());
+		a.setValue(randDouble());
+		b.setValue(randDouble());
 
 		return({
 			expr: 'sign(' + a.toString(10) + ' - ' + b.toString(10) + ')\n',
@@ -138,8 +138,8 @@ let testList: Test[] = [
 		});
 	},
 	() => {
-		a.setDouble(randDouble());
-		b.setDouble(randDouble());
+		a.setValue(randDouble());
+		b.setValue(randDouble());
 
 		return({
 			expr: a.toString(10) + ' + ' + b.toString(10) + '\n',
@@ -147,8 +147,8 @@ let testList: Test[] = [
 		});
 	},
 	() => {
-		a.setDouble(randDouble());
-		b.setDouble(randDouble());
+		a.setValue(randDouble());
+		b.setValue(randDouble());
 
 		return({
 			expr: a.toString(10) + ' - ' + b.toString(10) + '\n',
