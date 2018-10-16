@@ -14,7 +14,7 @@ It provides binary floating point:
 - subtraction, `x.sub(y)`
 - multiplication, `x.mul(y)`
 - comparison, `x.deltaFrom(y)` alias `x.cmp(y)`
-- conversion to string in bases 2-36, `x.toString(10)`
+- conversion to string in even bases 2-36, `x.toString(10)`
 
 without ever losing any significant bits. Numbers are immutable in the above operations, so they return a new BigFloat.
 For efficiency, the following methods instead destructively change the value:
@@ -22,7 +22,8 @@ For efficiency, the following methods instead destructively change the value:
 - `x.truncate(limbs)` rounds the fractional digits towards zero, to `limbs * 32` or `limbs * 53` bits.
 - `x.round(digits)` rounds approximately to `digits` decimal places (to enough limbs to hold them).
 
-Division is deliberately unsupported, because its result is generally inexact. Please use rational numbers instead.
+Division is deliberately unsupported, because its result is generally inexact.
+Please multiply by the reciprocal or use rational numbers instead.
 Note that floating point values in numerators and denominators are perfectly cromulent.
 If you need square roots or transcendental functions, use some other library.
 
@@ -37,7 +38,8 @@ There are two versions of the class, `BigFloat32` and `BigFloat53` with the same
   - Optimized for exponents relatively close to zero, so the location of the decimal point is always present in the limb array,
     even if that introduces otherwise insignificant leading or trailing zero limbs.
 - Precision is only limited by available memory.
-- Uses integer math for best portability but runs slower.
+- Uses integer math for best portability.
+- Faster for operations between two arbitrary precision `BigFloat32` objects, slower for converting to / from JavaScript numbers.
 
 **BigFloat53**
 
@@ -52,15 +54,17 @@ There are two versions of the class, `BigFloat32` and `BigFloat53` with the same
   - Numbers rounding to `2 ** 1024` or greater will overflow **spectacularly**.
 - Uses error free transformations (see JR Shewchuk.
   [*Adaptive Precision Floating-Point Arithmetic and Fast Robust Geometric Predicates*](doc/robustr.pdf),
-  1997) and runs faster.
+  1997).
   - Requires accurate rounding to nearest with ties to even as specified by EcmaScript 5.1 and up
     ([section 8.5](https://www.ecma-international.org/ecma-262/5.1/#sec-8.5)).
+- Faster for operations between arbitrary precision `BigFloat53` objects and JavaScript numbers, slower for operations between two arbitrary precision objects.
 
 In both versions the least significant limb / component is stored first,
 because basic algorithms for arithmetic operations progress from the least to most significant digit while propagating carry.
 If carry causes the output to grow, adding a new limb at the end of the array is faster than adding it in the beginning.
 
-TL;DR: Use `BigFloat53` for speed or `BigFloat32` for portability and to avoid under / overflow.
+TL;DR: Use `BigFloat32` for long operations between arbitrary precision floats, portability and to avoid under / overflow.
+Use `BigFloat53` for short calculations with many ordinary JavaScript numbers as inputs.
 
 You may want to test with both to compare their speed and see if you run into overflow
 or any floating point portability issues on mobile platforms.
