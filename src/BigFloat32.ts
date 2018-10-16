@@ -1,7 +1,7 @@
 // This file is part of bigfloat, copyright (c) 2015- BusFaster Ltd.
 // Released under the MIT license, see LICENSE.
 
-import { BaseInfo32, limbSize32, limbsPerDigit32 } from './BaseInfo32';
+import { BaseInfo32, limbSize32, limbInv32, limbsPerDigit32 } from './BaseInfo32';
 import { trimNumber } from './util';
 
 export class BigFloat32 {
@@ -512,6 +512,27 @@ export class BigFloat32 {
 				digitList.push(pad.substr(limbStr.length) + limbStr);
 			} else ++limbNum;
 		}
+	}
+
+	valueOf() {
+		const limbList = this.limbList;
+		let len = this.fractionLen;
+		let result = 0;
+		let exp = limbInv32 * this.sign;
+		let pos = 0;
+
+		while(pos < len) {
+			result = result * limbInv32 + limbList[pos++];
+		}
+
+		len = this.len;
+
+		while(pos < len) {
+			result = result * limbInv32 + limbList[pos++];
+			exp *= limbSize32;
+		}
+
+		return(result * exp);
 	}
 
 	/** Convert to string in any even base supported by Number.toString.
