@@ -143,8 +143,8 @@ export class BigFloat53 {
 				err = limb - (q - err);
 
 				limbList[b] = q;
-				q = err || q;
 				b -= err && 1;
+				q = err || q;
 			}
 
 			limbList[b] = q;
@@ -156,8 +156,7 @@ export class BigFloat53 {
 
 				err -= q - limb;
 
-				limbList[a] = q;
-				q = err || q;
+				limbList[a] = err;
 				a += err && 1;
 			}
 
