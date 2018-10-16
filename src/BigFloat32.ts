@@ -183,7 +183,7 @@ export class BigFloat32 {
 			multiplier = temp32.setValue(multiplier);
 		}
 
-		if(product == this) throw(new Error('Cannot multiply in place'));
+		if(product == this) throw(new Error('Multiplication in place is unsupported'));
 
 		return(this.mulBig(multiplier, product));
 	}
@@ -400,7 +400,7 @@ export class BigFloat32 {
 	private addSub(addend: number | BigFloat32, sign: -1 | 1, result?: BigFloat32) {
 		result = result || new BigFloat32();
 
-		if(result == this) throw(new Error('Cannot add or subtract in place'));
+		if(result == this) throw(new Error('Addition and subtraction in place is unsupported'));
 
 		if(typeof(addend) == 'number') {
 			addend = temp32.setValue(addend);
@@ -487,16 +487,17 @@ export class BigFloat32 {
 		let limbNum = 0;
 		let limbStr: string;
 
-		// Skip least significant limbs that equal zero.
-		while(1) {
-			if(limbNum >= limbCount) return;
-			if(limbList[limbNum]) break;
-			++limbNum;
+		if(base & 1) {
+			throw(new Error('Conversion of floating point values to odd bases is unsupported'));
 		}
+
+		// Skip least significant limbs that equal zero.
+		while(limbNum < limbCount && !limbList[limbNum]) ++limbNum;
+		if(limbNum >= limbCount) return;
 
 		digitList.push('.');
 
-		let fPart = temp32;
+		const fPart = temp32;
 		fPart.limbList = limbList.slice(limbNum, limbCount);
 		fPart.len = limbCount - limbNum;
 
@@ -513,7 +514,7 @@ export class BigFloat32 {
 		}
 	}
 
-	/** Convert to string in any base supported by Number.toString.
+	/** Convert to string in any even base supported by Number.toString.
 	  * @return String in lower case. */
 
 	toString(base: number = 10) {

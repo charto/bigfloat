@@ -226,7 +226,7 @@ export class BigFloat53 {
 
 		while(pos) {
 			--pos;
-			this.mulSmall(limbList[pos], product).add(temp53[~pos & 1], pos ? temp53[pos & 1] : product);
+			this.mulSmall(limbList[pos], product).addBig(temp53[~pos & 1], 1, pos ? temp53[pos & 1] : product);
 		}
 
 		return(product);
@@ -481,7 +481,6 @@ export class BigFloat53 {
 		return(this.truncate(1 + ~~(decimalCount * limbsPerDigit53)));
 	}
 
-	// TODO: Test.
 	valueOf() {
 		const limbList = this.limbList;
 		const len = this.len;
@@ -494,7 +493,7 @@ export class BigFloat53 {
 		return(result);
 	}
 
-	/** Convert to string in any base supported by Number.toString.
+	/** Convert to string in any even base supported by Number.toString.
 	  * @return String in lower case. */
 
 	toString(base?: number) {
