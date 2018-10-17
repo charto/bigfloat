@@ -6,6 +6,7 @@
 		"lib": [ "es5" ],
 		"module": "commonjs",
 		"moduleResolution": "node",
+		"noEmitHelpers": true,
 		"noImplicitAny": true,
 		"noImplicitThis": true,
 		"outDir": "../dist/cjs",

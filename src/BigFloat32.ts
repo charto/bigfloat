@@ -2,9 +2,10 @@
 // Released under the MIT license, see LICENSE.
 
 import { BaseInfo32, limbSize32, limbInv32, limbsPerDigit32 } from './BaseInfo32';
+import { BigFloatBase } from './BigFloatBase';
 import { trimNumber } from './util';
 
-export class BigFloat32 {
+export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
 	constructor(value?: number) {
 		value ? this.setValue(value) : this.setZero();

@@ -8,6 +8,7 @@
 	Discrete & Computational Geometry 18(3):305–363, October 1997.
 */
 
+import { BigFloatBase } from './BigFloatBase';
 import { BigFloat32 } from './BigFloat32';
 
 export const dekkerSplitter = (1 << 27) + 1;
@@ -66,7 +67,7 @@ function twoProduct(a: number, b: number) {
   * Maximum exponent is the same as for plain JavaScript numbers,
   * least significant representable binary digit is 2^-1074. */
 
-export class BigFloat53 {
+export class BigFloat53 implements BigFloatBase<BigFloat53> {
 
 	/** @param value Initial value, a plain JavaScript floating point number
 	  * (IEEE 754 double precision). */

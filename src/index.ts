@@ -3,4 +3,5 @@
 
 export { BigFloat32 } from './BigFloat32';
 export { BigFloat53 } from './BigFloat53';
+export { BigComplex32, BigComplex53 } from './BigComplex';
 export { trimNumber, numberToString } from './util';
