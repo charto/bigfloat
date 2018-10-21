@@ -134,8 +134,8 @@ THEN
 x = Math.pow(2, 53);
 console.log(x + 1 - x); // Prints 0
 
-BigFloat = require('bigfloat').BigFloat;
-console.log(new BigFloat(x).add(1).sub(x).toString()); // Prints 1
+BigFloat32 = require('bigfloat').BigFloat32;
+console.log(new BigFloat32(x).add(1).sub(x).toString()); // Prints 1
 ```
 
 # License
