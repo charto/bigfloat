@@ -76,6 +76,15 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 		if(value) this.setValue(value);
 	}
 
+	clone() {
+		const other = new BigFloat53();
+
+		other.limbList = this.limbList.slice(0);
+		other.len = this.len;
+
+		return(other)
+	}
+
 	/** Set value to zero.
 	  *
 	  * @return This object, for chaining. */
@@ -268,12 +277,18 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 		return(true);
 	}
 
+	getSign() {
+		let t = this.len;
+
+		return(t && (t = this.limbList[t - 1]) && (t > 0 ? 1 : -1));
+	}
+
 	/** Return an arbitrary number with sign matching the result of this - other. */
 
 	// TODO: Test.
 	deltaFrom(other: number | BigFloat53) {
 		let t = this.len;
-		let sign = t && (t = this.limbList[t - 1]) && (t > 0 ? 1 : -1);
+		let sign = this.getSign();
 		let diff = sign;
 
 		if(typeof(other) != 'number') {

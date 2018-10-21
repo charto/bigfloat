@@ -11,6 +11,17 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		value ? this.setValue(value) : this.setZero();
 	}
 
+	clone() {
+		const other = new BigFloat32();
+
+		other.sign = this.sign;
+		other.fractionLen = this.fractionLen;
+		other.len = this.len;
+		other.limbList = this.limbList.slice(0);
+
+		return(other)
+	}
+
 	setZero() {
 		this.sign = 1;
 		this.fractionLen = 0;
@@ -220,6 +231,10 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
 	isZero() {
 		return(this.len == 0);
+	}
+
+	getSign() {
+		return(this.len && this.sign);
 	}
 
 	/** Return an arbitrary number with sign matching the result of this - other. */
@@ -589,7 +604,7 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		return(trimNumber(digitList.join('')));
 	}
 
-	sign: -1 | 1;
+	private sign: -1 | 1;
 
 	/** List of digits in base 2^32, least significant first. */
 	private limbList: number[] = [];

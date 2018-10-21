@@ -3,6 +3,7 @@
 
 export interface BigFloatBase<Type> {
 
+	clone(): Type;
 	setZero(): Type;
 	setValue(value: number): Type;
 	mul(multiplier: number | Type, product?: Type): Type;
@@ -10,6 +11,7 @@ export interface BigFloatBase<Type> {
 	cmp(other: number | Type): number;
 
 	isZero(): boolean;
+	getSign(): number;
 	deltaFrom(other: number | Type): number;
 	add(addend: number | Type, sum?: Type): Type;
 	sub(subtrahend: number | Type, difference?: Type): Type;

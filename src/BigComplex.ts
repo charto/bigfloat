@@ -25,6 +25,15 @@ export class BigComplex<Base extends BigFloatBase<Base>> {
 		this.imag = typeof(imag) == 'object' ? imag : new this.Base(imag);
 	}
 
+	clone() {
+		const other = new (this.constructor as new(real: Base, imag: Base) => this)(
+			this.real.clone(),
+			this.imag.clone()
+		);
+
+		return(other);
+	}
+
 	mul(multiplier: number | Base | BigComplex<Base>, product?: BigComplex<Base>) {
 		product = product || new (this.constructor as new() => this)();
 
@@ -73,6 +82,8 @@ export class BigComplex<Base extends BigFloatBase<Base>> {
 	truncate(fractionLimbCount: number) {
 		this.real.truncate(fractionLimbCount);
 		this.imag.truncate(fractionLimbCount);
+
+		return(this);
 	}
 
 	Base: new(x?: number) => Base;
