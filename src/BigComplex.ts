@@ -34,6 +34,20 @@ export class BigComplex<Base extends BigFloatBase<Base>> {
 		return(other);
 	}
 
+	setZero() {
+		this.real.setZero();
+		this.imag.setZero();
+
+		return(this);
+	}
+
+	setValue(other: BigComplex<Base>) {
+		this.real.setValue(other.real);
+		this.imag.setValue(other.imag);
+
+		return(this);
+	}
+
 	mul(multiplier: number | Base | BigComplex<Base>, product?: BigComplex<Base>) {
 		product = product || new (this.constructor as new() => this)();
 
@@ -49,6 +63,19 @@ export class BigComplex<Base extends BigFloatBase<Base>> {
 			this.real.mul(multiplier, product.real);
 			this.imag.mul(multiplier, product.imag);
 		}
+
+		return(product);
+	}
+
+	sqr(product?: BigComplex<Base>) {
+		product = product || new (this.constructor as new() => this)();
+
+		this.real.mul(this.real, this.temp1);
+		this.imag.mul(this.imag, this.temp2);
+		this.temp1.sub(this.temp2, product.real);
+
+		this.real.mul(this.imag, this.temp1);
+		this.temp1.add(this.temp1, product.imag);
 
 		return(product);
 	}

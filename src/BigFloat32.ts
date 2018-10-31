@@ -7,19 +7,12 @@ import { trimNumber } from './util';
 
 export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
-	constructor(value?: number) {
+	constructor(value?: number | BigFloat32) {
 		value ? this.setValue(value) : this.setZero();
 	}
 
 	clone() {
-		const other = new BigFloat32();
-
-		other.sign = this.sign;
-		other.fractionLen = this.fractionLen;
-		other.len = this.len;
-		other.limbList = this.limbList.slice(0);
-
-		return(other)
+		return(new BigFloat32().setBig(this));
 	}
 
 	setZero() {
@@ -30,9 +23,31 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		return(this);
 	}
 
+	setValue(other: number | BigFloat32) {
+		if(typeof(other) == 'number') {
+			return(this.setNumber(other));
+		}
+
+		return(this.setBig(other));
+	}
+
+	private setBig(other: BigFloat32) {
+		const len = other.len;
+
+		this.sign = other.sign;
+		this.fractionLen = other.fractionLen;
+		this.len = len;
+
+		for(let pos = 0; pos < len; ++pos) {
+			this.limbList[pos] = other.limbList[pos];
+		}
+
+		return(this);
+	}
+
 	/** Set value from a floating point number (probably IEEE 754 double). */
 
-	setValue(value: number) {
+	private setNumber(value: number) {
 		if(value < 0) {
 			value = -value;
 			this.sign = -1;
@@ -192,7 +207,7 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		product = product || new BigFloat32();
 
 		if(typeof(multiplier) == 'number') {
-			multiplier = temp32.setValue(multiplier);
+			multiplier = temp32.setNumber(multiplier);
 		}
 
 		if(product == this) throw(new Error('Multiplication in place is unsupported'));
@@ -202,7 +217,7 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
 	absDeltaFrom(other: number | BigFloat32) {
 		if(typeof(other) == 'number') {
-			other = temp32.setValue(other);
+			other = temp32.setNumber(other);
 		}
 
 		const limbList = this.limbList;
@@ -241,7 +256,7 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
 	deltaFrom(other: number | BigFloat32) {
 		if(typeof(other) == 'number') {
-			other = temp32.setValue(other);
+			other = temp32.setNumber(other);
 		}
 
 		return(
@@ -419,7 +434,7 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		if(result == this) throw(new Error('Addition and subtraction in place is unsupported'));
 
 		if(typeof(addend) == 'number') {
-			addend = temp32.setValue(addend);
+			addend = temp32.setNumber(addend);
 		}
 
 		if(this.sign * addend.sign * sign < 0) {

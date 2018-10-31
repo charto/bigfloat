@@ -5,7 +5,7 @@ export interface BigFloatBase<Type> {
 
 	clone(): Type;
 	setZero(): Type;
-	setValue(value: number): Type;
+	setValue(value: number | Type): Type;
 	mul(multiplier: number | Type, product?: Type): Type;
 	// absDeltaFrom(other: number | Type): Type;
 	cmp(other: number | Type): number;

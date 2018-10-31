@@ -72,17 +72,12 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 	/** @param value Initial value, a plain JavaScript floating point number
 	  * (IEEE 754 double precision). */
 
-	constructor(value?: number) {
+	constructor(value?: number | BigFloat53) {
 		if(value) this.setValue(value);
 	}
 
 	clone() {
-		const other = new BigFloat53();
-
-		other.limbList = this.limbList.slice(0);
-		other.len = this.len;
-
-		return(other)
+		return(new BigFloat53().setBig(this));
 	}
 
 	/** Set value to zero.
@@ -91,6 +86,27 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 
 	setZero() {
 		this.len = 0;
+
+		return(this);
+	}
+
+	setValue(other: number | BigFloat53) {
+		if(typeof(other) == 'number') {
+			return(this.setNumber(other));
+		}
+
+		return(this.setBig(other));
+	}
+
+	private setBig(other: BigFloat53) {
+		const len = other.len;
+
+		this.len = len;
+
+		for(let pos = 0; pos < len; ++pos) {
+			this.limbList[pos] = other.limbList[pos];
+		}
+
 		return(this);
 	}
 
@@ -100,9 +116,10 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 	  * @param value New value.
 	  * @return This object, for chaining. */
 
-	setValue(value: number) {
+	private setNumber(value: number) {
 		this.limbList[0] = value;
 		this.len = value && 1;
+
 		return(this);
 	}
 
