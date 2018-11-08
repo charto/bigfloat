@@ -72,8 +72,8 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 	/** @param value Initial value, a plain JavaScript floating point number
 	  * (IEEE 754 double precision). */
 
-	constructor(value?: number | BigFloat53) {
-		if(value) this.setValue(value);
+	constructor(value?: BigFloat53 | number | string, base?: number) {
+		if(value) this.setValue(value, base);
 	}
 
 	clone() {
@@ -90,12 +90,15 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 		return(this);
 	}
 
-	setValue(other: number | BigFloat53) {
+	setValue(other: BigFloat53 | number | string, base?: number) {
 		if(typeof(other) == 'number') {
 			return(this.setNumber(other));
 		}
+		if(other instanceof BigFloat53) {
+			return(this.setBig(other));
+		}
 
-		return(this.setBig(other));
+		return(this.setString(other.toString(), base || 10));
 	}
 
 	private setBig(other: BigFloat53) {
@@ -119,6 +122,15 @@ export class BigFloat53 implements BigFloatBase<BigFloat53> {
 	private setNumber(value: number) {
 		this.limbList[0] = value;
 		this.len = value && 1;
+
+		return(this);
+	}
+
+	private setString(value: string, base: number) {
+		temp32[0].setValue(value, base);
+
+		this.len = temp32[0].getExpansion(this.limbList);
+		this.normalize();
 
 		return(this);
 	}

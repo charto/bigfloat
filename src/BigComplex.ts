@@ -18,11 +18,12 @@ function __extends<Child, Parent>(child: new(...args: any[]) => Child, parent: n
 export class BigComplex<Base extends BigFloatBase<Base>> {
 
 	constructor(
-		real?: Base | number,
-		imag?: Base | number
+		real?: Base | number | string,
+		imag?: Base | number | string,
+		base?: number
 	) {
-		this.real = typeof(real) == 'object' ? real : new this.Base(real);
-		this.imag = typeof(imag) == 'object' ? imag : new this.Base(imag);
+		this.real = typeof(real) == 'object' ? real : new this.Base(real, base);
+		this.imag = typeof(imag) == 'object' ? imag : new this.Base(imag, base);
 	}
 
 	clone() {
@@ -113,7 +114,7 @@ export class BigComplex<Base extends BigFloatBase<Base>> {
 		return(this);
 	}
 
-	Base: new(x?: number) => Base;
+	Base: new(x?: Base | number | string, base?: number) => Base;
 	real: Base;
 	imag: Base;
 

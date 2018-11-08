@@ -2,10 +2,9 @@
 // Released under the MIT license, see LICENSE.
 
 export interface BigFloatBase<Type> {
-
 	clone(): Type;
 	setZero(): Type;
-	setValue(value: number | Type): Type;
+	setValue(value: Type | number | string, base?: number): Type;
 	mul(multiplier: number | Type, product?: Type): Type;
 	// absDeltaFrom(other: number | Type): Type;
 	cmp(other: number | Type): number;
@@ -19,4 +18,5 @@ export interface BigFloatBase<Type> {
 	round(decimalCount: number): Type;
 	valueOf(): number;
 	toString(base: number): string;
+
 }

@@ -22,11 +22,13 @@ export class BaseInfo32 {
 
 	private static baseTbl: { [base: number]: BaseInfo32 } = {};
 
-	/** Number of digits per limb, for compatibility in rounding. */
-	limbDigits = Math.log(limbSize32) / Math.log(this.base);
+	/** Average number of digits per limb. */
+	limbDigitsExact = Math.log(limbSize32) / Math.log(this.base);
+	/** Number of entire digits per limb. */
+	limbDigits = ~~this.limbDigitsExact;
 	/** Maximum power of base that fits in a limb. */
-	limbBase = Math.pow(this.base, ~~this.limbDigits);
+	limbBase = Math.pow(this.base, this.limbDigits);
 	/** String of zeroes for padding an empty limb. */
-	pad = zeroes(~~this.limbDigits);
+	pad = zeroes(this.limbDigits);
 
 }

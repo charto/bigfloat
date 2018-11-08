@@ -9,12 +9,13 @@
 `bigfloat` is a fast arbitrary precision math library optimized for computational geometry and geoinformatics.
 It provides binary floating point:
 
-- conversion from the JavaScript number type, `x = new BigFloat53(123.456)`
+- conversion to / from the JavaScript number type, `x = new BigFloat32(123.456)` and `x.valueOf()`
 - addition, `x.add(y)`
 - subtraction, `x.sub(y)`
 - multiplication, `x.mul(y)`
 - comparison, `x.deltaFrom(y)` alias `x.cmp(y)`
-- conversion to string in even bases 2-36, `x.toString(10)`
+- string output in even bases 2-36, `x.toString(10)`
+- string parsing in bases 2-36, `x = new BigFloat32('abc.def', 16)`
 
 without ever losing any significant bits. Numbers are immutable in the above operations, so they return a new BigFloat.
 For efficiency, the following methods instead destructively change the value:

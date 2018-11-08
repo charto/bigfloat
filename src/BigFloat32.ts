@@ -7,8 +7,8 @@ import { trimNumber } from './util';
 
 export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
-	constructor(value?: number | BigFloat32) {
-		value ? this.setValue(value) : this.setZero();
+	constructor(value?: BigFloat32 | number | string, base?: number) {
+		value ? this.setValue(value, base) : this.setZero();
 	}
 
 	clone() {
@@ -23,12 +23,16 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		return(this);
 	}
 
-	setValue(other: number | BigFloat32) {
+	setValue(other: BigFloat32 | number | string, base?: number) {
 		if(typeof(other) == 'number') {
 			return(this.setNumber(other));
 		}
 
-		return(this.setBig(other));
+		if(other instanceof BigFloat32) {
+			return(this.setBig(other));
+		}
+
+		return(this.setString(other.toString(), base || 10));
 	}
 
 	private setBig(other: BigFloat32) {
@@ -87,8 +91,10 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		len += pos + 1;
 
 		// Handle integer part.
+
 		while(iPart) {
 			// Extract limbs starting from the least significant.
+
 			limb = iPart % limbSize32; // Could also be iPart >>> 0
 			iPart = (iPart - limb) / limbSize32;
 
@@ -99,6 +105,112 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		this.limbList = limbList;
 		this.fractionLen = fractionLen;
 		this.len = len;
+
+		return(this);
+	}
+
+	private parseFraction(value: string, base: number, start: number, offset: number, limbBase: number, limbDigits: number) {
+		const limbList = this.limbList;
+		let pos = value.length;
+
+		// Set limbs to zero, because divInt uses them as input.
+
+		let limbNum = offset - 1;
+
+		while(limbNum) {
+			limbList[--limbNum] = 0;
+		}
+
+		// Read initial digits so their count becomes divisible by limbDigits.
+
+		let posNext = pos - ((pos - start + limbDigits - 1) % limbDigits + 1);
+
+		limbList[offset - 1] = parseInt(value.substr(posNext, pos - posNext), base);
+		this.divInt(Math.pow(base, pos - posNext), offset);
+
+		pos = posNext;
+
+		// Read rest of the digits in limbDigits sized chunks.
+
+		while(pos > start) {
+			pos -= limbDigits;
+
+			limbList[offset - 1] = parseInt(value.substr(pos, limbDigits), base);
+
+			// Divide by maximum power of base that fits in a limb.
+			this.divInt(limbBase, offset);
+		}
+	}
+
+	private setString(value: string, base: number) {
+		const { limbBase, limbDigits, limbDigitsExact } = BaseInfo32.init(base);
+		const limbList = this.limbList;
+		let pos = -1;
+		let c: string;
+
+		this.sign = 1;
+
+		// Handle leading signs and zeroes.
+
+		while(1) {
+			c = value.charAt(++pos);
+
+			switch(c) {
+				case '-':
+					this.sign = -1;
+				case '+':
+				case '0':
+					continue;
+			}
+
+			break;
+		}
+
+		const posDot = (value.indexOf('.', pos) + 1 || value.length + 1) - 1;
+
+		// Handle fractional part.
+
+		if(posDot < value.length - 1) {
+			// Reserve enough limbs to contain digits in fractional part.
+			const len = ~~((value.length - posDot - 1) / limbDigitsExact) + 1;
+
+			this.parseFraction(value, base, posDot + 1, len + 1, limbBase, limbDigits);
+
+			this.fractionLen = len;
+			this.len = len;
+
+			// Remove trailing zeroes.
+			this.trimLeast();
+		} else {
+			this.fractionLen = 0;
+			this.len = 0;
+		}
+
+		const offset = this.fractionLen;
+
+		// Handle integer part.
+
+		if(posDot > pos) {
+			// Read initial digits so their count becomes divisible by limbDigits.
+
+			let posNext = pos + (posDot - pos + limbDigits - 1) % limbDigits + 1;
+
+			++this.len;
+			limbList[offset] = parseInt(value.substr(pos, posNext - pos), base);
+			pos = posNext;
+
+			// Read rest of the digits in limbDigits sized chunks.
+
+			while(pos < posDot) {
+				// Multiply by maximum power of base that fits in a limb.
+				if(this.mulInt(limbBase, limbList, offset, offset, 0)) ++this.len;
+
+				// Add latest limb.
+				limbList[offset] += parseInt(value.substr(pos, limbDigits), base);
+
+				pos += limbDigits;
+			}
+		}
 
 		return(this);
 	}
@@ -481,21 +593,20 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
 	/** Divide by integer, replacing current value by quotient. Return integer remainder. */
 
-	private divInt(divisor: number) {
+	private divInt(divisor: number, pos: number) {
 		let limbList = this.limbList;
-		let limbNum = this.len;
 		let limb: number;
 		let hi: number, lo: number;
 		let carry = 0;
 
 		// If most significant limb is zero after dividing, decrement number of limbs remaining.
-		if(limbList[limbNum - 1] < divisor) {
-			carry = limbList[--limbNum];
-			this.len = limbNum;
+		if(limbList[pos - 1] < divisor) {
+			carry = limbList[--pos];
+			this.len = pos;
 		}
 
-		while(limbNum--) {
-			limb = limbList[limbNum];
+		while(pos--) {
+			limb = limbList[pos];
 
 			carry = carry * 0x10000 + (limb >>> 16);
 			hi = (carry / divisor) >>> 0;
@@ -505,7 +616,7 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 			lo = (carry / divisor) >>> 0;
 			carry = carry - lo * divisor;
 
-			limbList[limbNum] = ((hi << 16) | lo) >>> 0;
+			limbList[pos] = ((hi << 16) | lo) >>> 0;
 		}
 
 		return(carry);
@@ -545,11 +656,29 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 		}
 	}
 
+	getExpansion(output: number[]) {
+		const limbList = this.limbList;
+		const len = this.len;
+		let exp = this.sign;
+		let pos = this.fractionLen;
+
+		while(pos--) {
+			exp *= limbInv32;
+		}
+
+		while(++pos < len) {
+			output[pos] = limbList[pos] * exp;
+			exp *= limbSize32;
+		}
+
+		return(len);
+	}
+
 	valueOf() {
 		const limbList = this.limbList;
-		let len = this.fractionLen;
 		let result = 0;
 		let exp = limbInv32 * this.sign;
+		let len = this.fractionLen;
 		let pos = 0;
 
 		while(pos < len) {
@@ -584,7 +713,7 @@ export class BigFloat32 implements BigFloatBase<BigFloat32> {
 
 			// Loop while 2 or more limbs remain, requiring arbitrary precision division to extract digits.
 			while(iPart.len > 1) {
-				limbStr = iPart.divInt(limbBase).toString(base);
+				limbStr = iPart.divInt(limbBase, iPart.len).toString(base);
 
 				// Prepend digits into final result, padded with zeroes to 9 digits.
 				// Since more limbs still remain, whole result will not have extra padding.
