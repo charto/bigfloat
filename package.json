@@ -1,6 +1,6 @@
 {
   "name": "bigfloat",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fast arbitrary precision math library for computational geometry.",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -27,9 +27,9 @@
     "gmp"
   ],
   "devDependencies": {
-    "@types/node": "^10.12.1",
+    "@types/node": "^10.12.9",
     "autoroll": "^0.1.0",
-    "rollup": "^0.66.6",
-    "typescript": "^3.1.4"
+    "rollup": "^0.67.3",
+    "typescript": "^3.1.6"
   }
 }
